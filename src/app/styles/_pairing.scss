@@ -1,0 +1,475 @@
+@use 'layout';
+
+// Pair with a code (UI-11, UI plan §4.4): the menu, the steps, the camera and the connecting, failure and expired
+// screens. One centred column, in the pane beside Home's sidebar on wide screens;
+// on landscape phones the QR or camera sits on the left with the words on the right.
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    inline-size: 100%;
+    max-inline-size: 1120px;
+    margin-inline: auto;
+}
+
+.screen-title {
+    margin: 0;
+    font-size: 1.375rem;
+    text-wrap: balance;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.screen-lead {
+    margin-block-start: 6px;
+    color: var(--muted);
+}
+
+.pairing-screen {
+    // The block space around the QR and camera: the header, the screen's words and buttons, and margins (UI-03).
+    --media-chrome: 300px;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "back"
+        "header"
+        "media"
+        "content";
+    align-content: start;
+    justify-items: center;
+    gap: 12px;
+    inline-size: 100%;
+    max-inline-size: 560px;
+    text-align: center;
+}
+
+.pairing-screen[data-screen="offer"] {
+    --media-chrome: 460px;
+}
+
+.pairing-screen[data-screen="answer"] {
+    --media-chrome: 340px;
+}
+
+.pairing-screen[data-screen="scan"] {
+    --media-chrome: 280px;
+}
+
+// Connecting: the spinner above the words, in the middle of the pane.
+.pairing-screen[data-screen="connecting"] {
+    grid-template-areas:
+        "back"
+        "media"
+        "header"
+        "content";
+    margin-block: auto;
+}
+
+.pairing-back {
+    grid-area: back;
+    justify-self: start;
+}
+
+// "‹ Back" and "‹ Other options".
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-block-size: 44px;
+    margin-inline-start: -8px;
+    padding: 0 8px;
+    font: inherit;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+
+    .button-icon .icon {
+        inline-size: 1.25rem;
+        block-size: 1.25rem;
+    }
+}
+
+@media (hover: hover) {
+    .back-link:hover {
+        color: var(--text);
+        background: var(--surface-raised);
+    }
+}
+
+.pairing-header {
+    grid-area: header;
+    max-inline-size: 100%;
+}
+
+// "Step 1 of 2" above a step's heading.
+.pairing-step {
+    margin-block-end: 2px;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.pairing-media {
+    grid-area: media;
+    display: flex;
+    justify-content: center;
+    inline-size: 100%;
+    min-inline-size: 0;
+}
+
+.pairing-content {
+    grid-area: content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    inline-size: 100%;
+    min-inline-size: 0;
+
+    .hint-list {
+        inline-size: 100%;
+        text-align: start;
+    }
+}
+
+// The menu: Show my code and Scan a code as tiles, Paste a code under them.
+.pair-choice {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    inline-size: 100%;
+    margin-block: 6px;
+}
+
+.pair-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-block-size: 112px;
+    padding: 12px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px var(--shadow);
+    cursor: pointer;
+    transition: border-color 0.12s ease;
+
+    .button-icon {
+        color: var(--accent);
+    }
+
+    .button-icon .icon {
+        inline-size: 28px;
+        block-size: 28px;
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.55;
+    }
+}
+
+@media (hover: hover) {
+    .pair-tile:hover:not(:disabled) {
+        border-color: var(--accent);
+    }
+}
+
+.qr-stage {
+    display: flex;
+    justify-content: center;
+    inline-size: 100%;
+}
+
+// UI-03: min(width, height) minus margins, at least 240 px. Never shrinks under the log viewer drawer.
+%media-square {
+    inline-size: max(240px, min(100%, 640px, calc(100dvh - var(--media-chrome) - var(--log-viewer-block-size, 0px))));
+    aspect-ratio: 1;
+}
+
+.qr-figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    inline-size: 100%;
+    margin: 0;
+}
+
+// UI-03: black on white in every theme. These are the only raw colours besides the camera backdrop.
+.qr-code {
+    @extend %media-square;
+
+    overflow: hidden;
+    color: #000000;
+    background: #ffffff;
+    border-radius: var(--radius-small);
+    box-shadow: 0 0 0 1px var(--border), 0 4px 16px var(--shadow);
+
+    svg {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+    }
+}
+
+.qr-caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-block-start: 6px;
+}
+
+// Copy code, and on the first device "Expires in 4:59 · works once" beside it.
+.qr-copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 10px;
+}
+
+.qr-copy {
+    flex: none;
+
+    &[data-state="copied"] {
+        color: var(--ok);
+    }
+}
+
+.qr-hint {
+    font-size: 0.8125rem;
+    color: var(--faint);
+}
+
+.qr-placeholder {
+    @extend %media-square;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    text-align: center;
+    color: var(--muted);
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+
+    &[data-state="failed"] {
+        color: var(--fail);
+
+        .spinner {
+            display: none;
+        }
+    }
+}
+
+// This device's code is framed in the accent colour, a reply in the ok colour.
+.qr-figure[data-kind="offer"] .qr-code {
+    box-shadow: 0 0 0 4px var(--accent), 0 4px 16px var(--shadow);
+}
+
+.qr-figure[data-kind="reply"] .qr-code {
+    box-shadow: 0 0 0 4px var(--ok), 0 4px 16px var(--shadow);
+}
+
+.copy-buffer {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: -9999px;
+    opacity: 0;
+}
+
+.scan-block {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    inline-size: 100%;
+}
+
+.pairing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.code-message {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    text-align: start;
+    color: var(--text);
+    background: var(--warn-soft);
+    border-radius: var(--radius);
+}
+
+.pairing-expiry {
+    font-size: 0.875rem;
+    color: var(--faint);
+
+    &[data-tone="warn"] {
+        font-weight: 600;
+        color: var(--warn);
+    }
+}
+
+// Step 2 of 2 under the code, after a thin line.
+.pairing-next {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    inline-size: 100%;
+    margin-block-start: 8px;
+    padding-block-start: 16px;
+    border-block-start: 1px solid var(--border);
+}
+
+.pairing-next-title {
+    margin: 0 0 4px;
+    font-size: 1.0625rem;
+}
+
+.pairing-waiting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+}
+
+.pairing-spinner {
+    inline-size: 32px;
+    block-size: 32px;
+    border-width: 3px;
+}
+
+// UI-04: the camera view keeps its stream through rotation; only its box changes size.
+.scan-frame {
+    @extend %media-square;
+
+    position: relative;
+    overflow: hidden;
+    background: #000000;
+    border-radius: var(--radius);
+}
+
+.scan-video {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+}
+
+.scan-frame[data-facing="user"] .scan-video {
+    transform: scaleX(-1);
+}
+
+.scan-viewfinder {
+    position: absolute;
+    inset: 14%;
+    border: 3px solid rgb(255 255 255 / 85%);
+    border-radius: 14px;
+    box-shadow: 0 0 0 100vmax rgb(0 0 0 / 30%);
+    pointer-events: none;
+}
+
+.scan-status {
+    position: absolute;
+    inset-block-end: 10px;
+    inset-inline: 10px;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+    text-align: center;
+    color: #ffffff;
+    background: rgb(0 0 0 / 60%);
+    border-radius: var(--radius);
+}
+
+.scan-torch {
+    position: absolute;
+    inset-block-start: 10px;
+    inset-inline-end: 10px;
+    color: #ffffff;
+    background: rgb(0 0 0 / 50%);
+
+    &:hover:not(:disabled) {
+        background: rgb(0 0 0 / 70%);
+    }
+
+    &[aria-pressed="true"] {
+        color: #000000;
+        background: #ffffff;
+    }
+}
+
+.scan-frame[data-state="unavailable"] {
+    display: grid;
+    place-items: center;
+    background: var(--surface-sunken);
+    border: 2px dashed var(--border-strong);
+
+    .scan-video,
+    .scan-viewfinder {
+        display: none;
+    }
+
+    .scan-status {
+        position: static;
+        max-inline-size: 28ch;
+        color: var(--text);
+        background: transparent;
+    }
+}
+
+// Landscape phones: the QR or camera on the left, the words and buttons on the right.
+@include layout.landscape-phone {
+    .pairing-screen[data-has-media="true"] {
+        // The header, Other options and the pane's padding.
+        --media-chrome: 156px;
+
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-areas:
+            "back back"
+            "media header"
+            "media content";
+        align-items: start;
+        max-inline-size: 760px;
+    }
+
+    .pairing-screen[data-screen="connecting"] {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "back"
+            "media"
+            "header"
+            "content";
+    }
+
+    .pairing-next {
+        margin-block-start: 0;
+    }
+
+    .screen-title {
+        font-size: 1.1875rem;
+    }
+}
+
+@include layout.desktop {
+    .screen-title {
+        font-size: 1.5rem;
+    }
+}

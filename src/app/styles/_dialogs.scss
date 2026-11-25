@@ -1,0 +1,466 @@
+@use 'layout';
+
+// Modal dialogs, sheets, menus and toasts. The scrim is the one translucent black over every theme.
+// Dialogs and sheets are bottom sheets on portrait phones and centred cards elsewhere.
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: rgb(0 0 0 / 45%);
+    animation: fade-in 0.15s ease;
+}
+
+.dialog {
+    display: grid;
+    gap: 12px;
+    inline-size: min(480px, 100%);
+    max-block-size: calc(100dvh - 32px);
+    overflow-y: auto;
+    padding: 20px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px var(--shadow-strong);
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.dialog-title {
+    margin: 0;
+    font-size: 1.125rem;
+}
+
+.dialog-body {
+    display: grid;
+    gap: 12px;
+}
+
+.dialog-message {
+    color: var(--muted);
+}
+
+.dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-block-start: 4px;
+}
+
+// A dialog's buttons share the row and wrap two by two on a narrow phone.
+.dialog-actions:not([data-layout="menu"]) > .button {
+    flex: 1 1 130px;
+}
+
+// The round icon above a dialog's title: the device that asks, or a lock.
+.dialog-icon {
+    display: grid;
+    place-items: center;
+    inline-size: 42px;
+    block-size: 42px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 50%;
+
+    .icon {
+        inline-size: 22px;
+        block-size: 22px;
+    }
+}
+
+.dialog > :is(.dialog-icon, .peer-avatar, .nearby-icon) {
+    justify-self: start;
+    grid-column: 1 / -1;
+}
+
+// A checkbox with its label, e.g. "Also cancel and clear the 3 transfers in progress".
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-block-size: 44px;
+    cursor: pointer;
+
+    input {
+        flex: none;
+        inline-size: 20px;
+        block-size: 20px;
+        margin: 0;
+        accent-color: var(--accent);
+    }
+}
+
+// Action menus (⋯): one flat row per choice, its icon then its words; a danger choice is red.
+.dialog-actions[data-layout="menu"],
+.menu-list {
+    display: grid;
+    justify-content: stretch;
+    gap: 0;
+    margin: 0 -8px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-block-size: 48px;
+    padding: 0 10px;
+    font: inherit;
+    text-align: start;
+    color: var(--text);
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+
+    &[data-tone="danger"] {
+        color: var(--fail);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+    }
+}
+
+@media (hover: hover) {
+    .menu-item:hover {
+        background: var(--surface-raised);
+    }
+}
+
+.menu-icon {
+    display: inline-flex;
+    flex: none;
+
+    &:empty {
+        display: none;
+    }
+
+    .icon {
+        inline-size: 20px;
+        block-size: 20px;
+    }
+}
+
+.dialog[data-variant="sheet"] {
+    inline-size: min(560px, 100%);
+}
+
+.dialog[data-variant="fullscreen"] {
+    inline-size: 100%;
+    max-inline-size: none;
+    block-size: 100%;
+    max-block-size: none;
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    border: 0;
+    border-radius: 0;
+}
+
+.dialog-backdrop:has(> .dialog[data-variant="fullscreen"]) {
+    padding: 0;
+}
+
+// A drawer from the inline end at full height, e.g. Previous sessions (UI plan §4.8).
+.dialog-backdrop:has(> .dialog[data-variant="drawer"]) {
+    place-items: stretch end;
+    padding: 0;
+}
+
+.dialog[data-variant="drawer"] {
+    position: relative;
+    align-content: start;
+    inline-size: min(380px, 90vw);
+    block-size: 100%;
+    max-block-size: none;
+    padding-block: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-bottom));
+    padding-inline: 16px max(16px, env(safe-area-inset-right));
+    border-block: 0;
+    border-inline-end: 0;
+    border-radius: 0;
+    box-shadow: -8px 0 30px var(--shadow-strong);
+    animation: slide-in 0.2s ease-out;
+
+    .dialog-title {
+        display: flex;
+        align-items: center;
+        min-block-size: 44px;
+        padding-inline-end: 48px;
+    }
+}
+
+.sessions-drawer {
+    display: grid;
+    gap: 12px;
+}
+
+.sessions-close {
+    position: absolute;
+    inset-block-start: max(16px, env(safe-area-inset-top));
+    inset-inline-end: max(8px, env(safe-area-inset-right));
+    color: var(--muted);
+}
+
+.sessions-lead {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.sessions-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// One paired device: the whole card opens it, the bin beside it clears it.
+.session-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.session-open {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-inline-size: 0;
+    min-block-size: 64px;
+    padding: 10px 12px;
+    font: inherit;
+    text-align: start;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px var(--shadow);
+    cursor: pointer;
+    transition: border-color 0.12s ease;
+}
+
+@media (hover: hover) {
+    .session-open:hover {
+        border-color: var(--accent);
+    }
+}
+
+.session-avatar {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 40px;
+    block-size: 40px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 50%;
+}
+
+.session-text {
+    display: grid;
+    flex: 1;
+    justify-items: start;
+    gap: 2px;
+    min-inline-size: 0;
+}
+
+.session-name {
+    max-inline-size: 100%;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-meta {
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+.session-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    &:not(:has(> :not([hidden]))) {
+        display: none;
+    }
+}
+
+.session-clear {
+    color: var(--muted);
+}
+
+// The Restore prompt (UI plan §4.6).
+.restore-note {
+    font-size: 0.875rem;
+    color: var(--faint);
+}
+
+.save-steps {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding-inline-start: 22px;
+    font-size: 0.875rem;
+}
+
+.save-status {
+    font-size: 0.875rem;
+
+    &[data-tone="ok"] {
+        color: var(--ok);
+    }
+
+    &[data-tone="warn"] {
+        color: var(--warn);
+    }
+
+    &[data-tone="fail"] {
+        color: var(--fail);
+    }
+}
+
+.file-details {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 6px 12px;
+    margin: 0;
+    font-size: 0.875rem;
+
+    dt {
+        color: var(--muted);
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+// The SHA-256 row: Compute, then the value in monospace with Copy and how to check it elsewhere.
+.sha256-detail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.sha256-value {
+    flex: 1 1 100%;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.sha256-progress {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 10px;
+
+    .progress-bar {
+        flex: 1;
+    }
+}
+
+.sha256-help {
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+.sha256-error {
+    font-size: 0.8125rem;
+    color: var(--fail);
+}
+
+.toast-region {
+    position: fixed;
+    inset-inline: 16px;
+    inset-block-end: calc(96px + env(safe-area-inset-bottom) + var(--log-viewer-block-size, 0px));
+    z-index: 250;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    max-inline-size: 480px;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    color: var(--bg);
+    background: var(--text);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 20px var(--shadow-strong);
+    pointer-events: auto;
+    animation: fade-in 0.15s ease;
+
+    &[data-tone="ok"] {
+        color: var(--text-inverse);
+        background: var(--ok);
+    }
+
+    &[data-tone="warn"] {
+        color: var(--text-inverse);
+        background: var(--warn);
+    }
+
+    &[data-tone="fail"] {
+        color: var(--text-inverse);
+        background: var(--fail);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(32px);
+    }
+}
+
+@include layout.portrait-phone {
+    .dialog-backdrop:has(> .dialog:is([data-variant="sheet"], [data-variant="dialog"])) {
+        align-items: end;
+        padding: 0;
+    }
+
+    .dialog:is([data-variant="sheet"], [data-variant="dialog"]) {
+        inline-size: 100%;
+        max-block-size: 88dvh;
+        padding-block-end: max(20px, env(safe-area-inset-bottom));
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
+    }
+}
+
+@include layout.landscape-phone {
+    .toast-region {
+        inset-block-end: max(16px, env(safe-area-inset-bottom));
+        inset-inline-end: max(16px, env(safe-area-inset-right));
+    }
+}
+
+@include layout.desktop {
+    .toast-region {
+        inset-block-end: 24px;
+        inset-inline-end: calc(24px + var(--log-viewer-inline-size, 0px));
+    }
+}

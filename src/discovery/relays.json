@@ -1,0 +1,11 @@
+{
+    "own": [
+        "wss://ether-relay.ether-web-app.workers.dev"
+    ],
+    "public": [
+        "wss://nos.lol",
+        "wss://nostr.mom",
+        "wss://relay.primal.net",
+        "wss://relay.nostr.net"
+    ]
+}

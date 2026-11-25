@@ -1,0 +1,34 @@
+{
+  "name": "ether-web-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Send files between two browsers on the same Wi-Fi, directly over WebRTC, with no server.",
+  "author": "Efthymios Koktsidis <efthymios.ks@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "serve": "node scripts/serve.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/sw/tsconfig.json && tsc --noEmit -p relay/tsconfig.json",
+    "test": "vitest run",
+    "check:network": "node scripts/checks/networkLoopbackCheck.mjs",
+    "check:app": "node scripts/checks/appPairingCheck.mjs",
+    "check:nearby": "node scripts/checks/nearbyCheck.mjs"
+  },
+  "dependencies": {
+    "exifr": "7.1.3",
+    "jsqr": "1.4.0",
+    "qrcode-generator": "2.0.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "fake-indexeddb": "6.2.8",
+    "happy-dom": "21.0.4",
+    "playwright-core": "1.65.1",
+    "sass": "1.108.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

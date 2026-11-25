@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ether UI prototype</title>
+<style>
+/* VOICE   quiet utility, like a system app: one task per screen, details on demand (LocalSend-style)
+   IDEA    a radio dial: you are a named station; nearby stations appear, tap one to tune in
+   PICTURE the nearby list itself, with an orbit (a dot circling your device) while scanning; the progress card is LocalSend-plain
+   COLOUR  Ether's own theme: the tokens below use the same values as src/app/theme/palette-light.scss + palette-dark.scss
+   TYPE    Ether's _base.scss: system-ui 1rem/1.45; components mirror .button, .icon-button, .card, .badge,
+           .segmented, .tab, .notice, .spinner, .progress-bar, .dialog, .toast from src/app/styles */
+
+/* ---- src/app/theme/palette-light.scss (the tokens this page uses, same values) ---- */
+:root[data-theme="light"]{color-scheme:light;
+--bg:#f8f8f8;--surface:#ffffff;--surface-sunken:#f3f3f3;--surface-raised:#f2f2f2;
+--text:#3b3b3b;--muted:#616161;--faint:#767676;--text-inverse:#ffffff;
+--border:#e5e5e5;--border-strong:#cecece;--divider:#f0f0f0;
+--accent:#005fb8;--accent-soft:#e0edf9;--accent-text:#ffffff;--selection-bg:#add6ff;
+--ok:#2e7d32;--ok-soft:#e6f4e7;--warn:#8a6100;--warn-soft:#fff4ce;--fail:#c72e0f;--fail-soft:#fde7e4;--info:#1a6fb5;--info-soft:#e0edf9;
+--ft-word:#0451a5;--ft-excel:#1b5e20;--ft-pdf:#a31515;--ft-image:#267f99;--ft-video:#ad1457;--ft-unknown:#767676;
+--radius:8px;--radius-small:4px;--shadow:rgb(0 0 0 / 8%);--shadow-strong:rgb(0 0 0 / 16%)}
+/* ---- src/app/theme/palette-dark.scss (the tokens this page uses, same values) ---- */
+:root[data-theme="dark"]{color-scheme:dark;
+--bg:#181818;--surface:#1f1f1f;--surface-sunken:#181818;--surface-raised:#2a2d2e;
+--text:#d4d4d4;--muted:#9d9d9d;--faint:#8a8a8a;--text-inverse:#1f1f1f;
+--border:#2b2b2b;--border-strong:#454545;--divider:#262626;
+--accent:#4ec9b0;--accent-soft:#163f3a;--accent-text:#1f1f1f;--selection-bg:#264f78;
+--ok:#73c991;--ok-soft:#1e3a26;--warn:#cca700;--warn-soft:#3b3206;--fail:#f14c4c;--fail-soft:#4b1818;--info:#3794ff;--info-soft:#0f2c4d;
+--ft-word:#75beff;--ft-excel:#73c991;--ft-pdf:#f48771;--ft-image:#4ec9b0;--ft-video:#c586c0;--ft-unknown:#8a8a8a;
+--radius:8px;--radius-small:4px;--shadow:rgb(0 0 0 / 36%);--shadow-strong:rgb(0 0 0 / 60%)}
+
+/* ---- _base.scss ---- */
+*,*::before,*::after{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:light dark;touch-action:pan-x pan-y}
+@media (pointer:coarse){:root :is(input,select,textarea){font-size:max(1rem,16px)}}
+body{margin:0;min-block-size:100dvh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;font-size:1rem;line-height:1.45;color:var(--text);background:var(--bg);-webkit-tap-highlight-color:transparent;overflow-x:clip}
+h1,h2,h3{line-height:1.25}p{margin-block:0}a{color:var(--accent)}::selection{background:var(--selection-bg)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,input{font:inherit;color:inherit}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-block-size:44px;padding:8px 16px;font:inherit;font-size:.9375rem;font-weight:500;line-height:1.2;text-align:center;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
+@media (hover:hover){.button:hover:not(:disabled){background:var(--surface-raised);border-color:var(--accent)}}
+.button:disabled{cursor:default;opacity:.55}
+.button-primary{color:var(--accent-text);background:var(--accent);border-color:var(--accent);transition:background-color .12s ease,border-color .12s ease,box-shadow .12s ease,transform .12s ease}
+@media (hover:hover){.button-primary:hover:not(:disabled){color:var(--accent-text);background:color-mix(in srgb,var(--accent) 72%,var(--text));border-color:color-mix(in srgb,var(--accent) 72%,var(--text));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent),0 4px 12px rgb(0 0 0/.2);transform:translateY(-1px)}}
+.button-primary:active:not(:disabled){background:color-mix(in srgb,var(--accent) 62%,var(--text));border-color:color-mix(in srgb,var(--accent) 62%,var(--text));box-shadow:none;transform:none}
+.button-danger{color:var(--fail);border-color:var(--fail)}
+@media (hover:hover){.button-danger:hover:not(:disabled){background:var(--fail-soft);border-color:var(--fail)}}
+.button-quiet{background:transparent;border-color:transparent}
+@media (hover:hover){.button-quiet:hover:not(:disabled){border-color:transparent}}
+.icon-button{position:relative;display:inline-grid;flex:none;place-items:center;inline-size:44px;block-size:44px;padding:0;color:var(--text);background:transparent;border:1px solid transparent;border-radius:var(--radius);cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
+.icon-button:hover:not(:disabled){background:var(--surface-raised)}.icon-button:disabled{cursor:default;opacity:.4}
+.icon-button-small{inline-size:36px;block-size:36px}
+.dev,.peer,.list,.tile,.total,.selbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 2px var(--shadow)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;color:var(--muted);background:var(--surface-sunken);border-radius:999px}
+.badge[data-tone="ok"]{color:var(--ok);background:var(--ok-soft)}.badge[data-tone="warn"]{color:var(--warn);background:var(--warn-soft)}
+.badge[data-tone="fail"]{color:var(--fail);background:var(--fail-soft)}.badge[data-tone="info"]{color:var(--info);background:var(--info-soft)}
+.badge svg.i{width:13px;height:13px}
+.notice{display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:.875rem;background:var(--info-soft);border-radius:var(--radius)}
+.notice[data-tone="warn"]{background:var(--warn-soft)}.notice[data-tone="fail"]{background:var(--fail-soft)}
+.spinner{display:inline-block;flex:none;inline-size:20px;block-size:20px;border:2px solid var(--border-strong);border-block-start-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.spinner.sm{inline-size:14px;block-size:14px;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-bar{display:block;overflow:hidden;block-size:6px;background:var(--surface-sunken);border-radius:999px;margin-top:6px}
+.progress-fill{display:block;inline-size:var(--progress,0%);block-size:100%;background:var(--accent);border-radius:inherit;transition:inline-size .15s ease}
+/* ---- _gallery.scss .segmented / _transfers.scss .tabs .tab ---- */
+.segmented{display:inline-flex;overflow:hidden;border:1px solid var(--border-strong);border-radius:var(--radius);flex:none}
+.segmented>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-block-size:40px;padding:6px 14px;font:inherit;font-size:.875rem;color:var(--muted);background:var(--surface);border:0;cursor:pointer;white-space:nowrap;flex:1 0 auto;transition:background-color .12s ease,color .12s ease}
+.segmented>button+button{border-inline-start:1px solid var(--border-strong)}
+.segmented>button[aria-pressed="true"]{font-weight:600;color:var(--accent);background:var(--accent-soft)}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-block-end:1px solid var(--border);scrollbar-width:none;margin:12px 0}
+.tab{flex:1 1 0;min-block-size:44px;padding:8px 14px;font:inherit;font-weight:500;color:var(--muted);background:transparent;border:0;border-block-end:2px solid transparent;cursor:pointer;transition:color .12s ease,border-color .12s ease;white-space:nowrap}
+.tab:hover{color:var(--text)}.tab[aria-selected="true"]{color:var(--text);border-block-end-color:var(--accent)}
+.tab .n{font-weight:400;color:var(--faint);margin-left:4px;font-size:.8125rem}
+@media (max-width:599px){.tab{padding:8px 6px;font-size:.9375rem}}
+/* ---- _dialogs.scss ---- */
+.scrim{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;background:rgb(0 0 0/45%);animation:fade-in .15s ease}
+.sheet{display:grid;gap:12px;inline-size:100%;max-inline-size:520px;max-block-size:88dvh;overflow:auto;overflow-x:hidden;padding:20px 20px calc(20px + env(safe-area-inset-bottom));color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px 12px 0 0;box-shadow:0 12px 32px var(--shadow-strong);animation:up .2s ease-out}
+@media (min-width:600px){.scrim{align-items:center;padding:16px}.sheet{border-radius:12px;max-inline-size:480px}}
+.sheet h3{margin:0;font-size:1.125rem;text-wrap:balance}
+.sheet .acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-block-start:4px}
+.sheet .acts .button{flex:1 1 130px}
+.drawer-scrim{align-items:stretch;justify-content:flex-end;padding:0}
+.drawer{position:relative;inline-size:min(380px,90vw);background:var(--surface);border-inline-start:1px solid var(--border);box-shadow:-8px 0 30px var(--shadow-strong);padding:16px;overflow:auto;animation:slide .2s ease-out}
+.toast{position:fixed;z-index:250;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);max-inline-size:min(480px,calc(100vw - 32px));padding:10px 14px;font-size:.875rem;color:var(--bg);background:var(--text);border-radius:var(--radius);box-shadow:0 6px 20px var(--shadow-strong);animation:fade-in .15s ease}
+@keyframes fade-in{from{opacity:0}}@keyframes up{from{transform:translateY(24px);opacity:0}}@keyframes slide{from{transform:translateX(32px);opacity:0}}
+
+/* ---- prototype layout (new; to become SCSS partials) ---- */
+.app{max-width:760px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+.app.desk{max-width:1280px}
+main.split{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);padding:0;align-items:start}
+.side{position:sticky;top:61px;min-height:calc(100dvh - 61px);max-height:calc(100dvh - 61px);overflow:auto;display:flex;flex-direction:column;padding:4px 16px 16px;border-right:1px solid var(--border);background:var(--surface)}
+.side .me{margin:16px 0 18px}.side .me b{font-size:1.1875rem}.side .empty .big{font-size:1.25rem}
+.pane{min-height:calc(100dvh - 61px);display:flex;flex-direction:column;padding:4px 20px calc(24px + env(safe-area-inset-bottom))}
+.pane>.empty{min-height:60dvh}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;padding:8px max(12px,env(safe-area-inset-left));background:var(--surface);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:1.0625rem;margin-right:auto;min-height:44px;background:none;border:0;cursor:pointer;padding:0 4px}
+.brand svg{width:28px;height:28px}
+header .icon-button{color:var(--muted)}header .icon-button:hover{color:var(--text)}
+.demo-btn{font-size:.8125rem;color:var(--muted);border:1px dashed var(--border-strong);border-radius:999px;padding:4px 12px;min-height:32px;background:none;cursor:pointer}
+main{flex:1;padding:4px 16px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+#notices .notice{margin:10px 16px 0}.notice .sp{margin-left:auto}
+h2{font-size:1rem;font-weight:600;margin:0}
+.muted{color:var(--muted)}.faint{color:var(--faint)}.small{font-size:.875rem}
+.link{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;min-height:44px;padding:0 8px;background:none;border:0;cursor:pointer;border-radius:var(--radius)}
+.link:hover{text-decoration:underline}
+/* identity */
+.me{display:flex;justify-content:center;align-items:stretch;gap:20px;margin:24px 0 24px}
+.me>button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:none;border:0;cursor:pointer;border-radius:var(--radius);padding:4px 8px;margin:-4px -8px}
+.me>button:hover{background:var(--surface-raised)}
+.me .lbl{font-size:.875rem;color:var(--muted)}.me b{font-size:1.375rem;font-weight:600;line-height:1.25}
+.me .sep{width:1px;background:var(--border-strong);flex:none}
+/* nearby */
+.sec{display:flex;align-items:center;gap:10px;margin:4px 2px 10px}
+.orbit{flex:none;display:block}.orbit .o-core,.orbit .o-sat circle{fill:var(--accent)}
+.orbit .o-ring{fill:none;stroke:var(--border-strong);stroke-width:1;vector-effect:non-scaling-stroke}
+.orbit .o-sat{transform-origin:12px 12px;animation:orbit 2.4s linear infinite}.orbit .o-sat2{animation-delay:-1.2s;opacity:.5}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.cards{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.dev{width:100%;display:flex;align-items:center;gap:14px;padding:12px 14px;text-align:left;min-height:68px;cursor:pointer;color:var(--text);font:inherit;transition:border-color .12s ease}
+@media (hover:hover){.dev:hover:not(:disabled){border-color:var(--accent)}}
+.dev:disabled{opacity:.55;cursor:default}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:none}
+svg.chev{transform:rotate(180deg);color:var(--faint)}
+.dev .t{flex:1;display:flex;flex-direction:column;align-items:flex-start}
+.dev .nm{max-width:100%;font-weight:600;font-size:1.0625rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.wait{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:.875rem;color:var(--muted)}
+.empty{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 8px;gap:10px}
+.empty .big{font-size:1.625rem;font-weight:600;line-height:1.2;text-wrap:balance;max-width:16ch}
+.note{font-size:.875rem;padding:10px 12px;border-radius:var(--radius);background:var(--fail-soft);color:var(--fail);margin-top:10px}
+.foot{display:flex;justify-content:center;margin-top:auto;padding-top:22px}
+/* code pairing */
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--muted);min-height:44px;margin-left:-8px;padding:0 8px;border-radius:var(--radius);background:none;border:0;cursor:pointer;align-self:flex-start}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:112px;font:inherit;font-weight:600;color:var(--text);cursor:pointer;transition:border-color .12s ease}
+.tile svg.i{width:28px;height:28px;color:var(--accent)}
+@media (hover:hover){.tile:hover{border-color:var(--accent)}}
+.step{font-size:.875rem;color:var(--muted);margin:10px 0 2px}
+.pair{display:flex;flex-direction:column;align-items:center;text-align:center}
+.pair h1{font-size:1.375rem;margin:0 0 14px;font-weight:600;text-wrap:balance}
+.qr{width:min(74vw,300px);aspect-ratio:1;background:#fff;border-radius:12px;padding:14px;border:3px solid var(--accent)}
+.qr.reply{border-color:var(--ok)}.qr svg{width:100%;height:100%;display:block;fill:#000}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.cam{width:min(86vw,340px);aspect-ratio:1;border-radius:12px;background:radial-gradient(circle at 40% 35%,#3a3d41,#111);position:relative;overflow:hidden}
+.cam::before{content:"";position:absolute;inset:18%;border:3px solid #fff;border-radius:12px;opacity:.85}
+.cam i{position:absolute;left:18%;right:18%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:scan 2s ease-in-out infinite alternate;top:20%}
+@keyframes scan{to{top:80%}}
+hr.div{border:0;border-top:1px solid var(--border);width:100%;margin:22px 0 4px}
+/* session */
+.peer{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-top:12px}
+.peer.lost{background:var(--fail-soft);border-color:var(--fail);border-inline-start-width:4px}
+.peer .t{flex:1}.peer .nm{font-weight:600;font-size:1.0625rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peer .st{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+.dot.bad{background:var(--fail)}
+.chip{display:inline-flex;align-items:center;font-size:.75rem;color:var(--muted);background:var(--surface-sunken);border:1px solid var(--border);border-radius:999px;padding:0 10px;min-height:32px;cursor:pointer;font-family:inherit}
+.chip b{font:700 .8125rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text);letter-spacing:.08em;margin-left:4px}
+@media (max-width:420px){.chip .cl{display:none}.chip b{margin:0}.peer .av{width:38px;height:38px}}
+.peer .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.prompt{padding:12px 14px;border-radius:var(--radius);background:var(--info-soft);margin-bottom:10px;font-size:.9375rem}
+.prompt .row{justify-content:flex-end;margin-top:8px}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:4px}
+/* progress (LocalSend-style) */
+.files{list-style:none;margin:0;padding:0}
+.f{display:flex;align-items:center;gap:12px;padding:8px 2px;min-height:56px}
+.ficon{width:40px;height:40px;border-radius:var(--radius-small);display:grid;place-items:center;background:var(--surface-sunken);color:var(--muted);flex:none;overflow:hidden;position:relative}
+.ficon.ph{color:#fff}.ficon.ph svg.i{opacity:.8}
+.f .t{flex:1}.fname{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs{display:block;font-size:.8125rem}.fs.ok{color:var(--ok)}.fs.acc{color:var(--accent)}.fs.fail{color:var(--fail)}.fs.warn{color:var(--warn)}.fs.mut{color:var(--faint)}
+.total{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));margin-top:auto;padding:14px 16px 8px;box-shadow:0 -2px 12px var(--shadow)}
+.total .progress-bar{block-size:8px}
+.total .acts{display:flex;justify-content:flex-end;gap:4px;margin-top:6px}
+.adv{font-size:.875rem;color:var(--muted);margin-top:8px;display:grid;gap:2px}
+.bh{display:flex;align-items:center;gap:8px;margin:14px 2px 0;font-size:.875rem;color:var(--muted)}
+.bh .sp{margin-left:auto}
+.pickrow{display:block;font-size:.8125rem;color:var(--warn);margin-top:2px}
+/* lists */
+.tool{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.search{flex:1;display:flex;align-items:center;gap:8px;padding:0 6px 0 12px;min-height:44px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border-strong);color:var(--muted)}
+.search:focus-within{border-color:var(--accent)}
+.search input{flex:1;border:0;outline:0;background:none;font-size:1rem;color:var(--text);min-height:40px}
+.tool>.icon-button{border-color:var(--border-strong);background:var(--surface)}
+.tool>.icon-button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.icon-button .badge-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.875rem;color:var(--muted);margin:0 2px 6px}
+.gh{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 4px;font-size:.875rem;color:var(--muted);font-weight:600;min-height:32px}
+.list{list-style:none;margin:0;padding:0;overflow:hidden}
+.li{display:flex;align-items:center;gap:8px;padding:6px 4px 6px 12px;min-height:56px;border-top:1px solid var(--divider)}
+.li:first-child{border-top:0}
+.li .main{flex:1;display:flex;align-items:center;gap:12px;text-align:left;min-height:44px;background:none;border:0;cursor:pointer;color:var(--text);font:inherit;padding:0}
+.li.sel{background:var(--accent-soft)}
+.meta{font-size:.8125rem;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.meta .ok{color:var(--ok)}.meta .fail{color:var(--fail)}.meta .warn{color:var(--warn)}
+.meta svg.i{width:14px;height:14px}
+.cb{width:20px;height:20px;border-radius:var(--radius-small);border:2px solid var(--border-strong);display:grid;place-items:center;flex:none;color:transparent;background:var(--surface)}
+.sel .cb,.tilebox.sel .cb{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.cb svg.i{width:14px;height:14px;stroke-width:3}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px}
+.tilebox{position:relative;aspect-ratio:1;border-radius:var(--radius-small);overflow:hidden;background:var(--surface-sunken);display:grid;place-items:center;color:var(--muted);border:0;cursor:pointer;font:inherit}
+.tilebox .cb{position:absolute;top:6px;left:6px}
+.tilebox.sel{outline:3px solid var(--accent);outline-offset:-3px}
+.ttag{position:absolute;left:6px;bottom:6px;font-size:.6875rem;font-weight:600;padding:1px 7px;border-radius:999px;background:rgb(0 0 0/.65);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 12px)}
+.ttag.fail{background:var(--fail)}
+.okb{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--ok);color:var(--text-inverse);display:grid;place-items:center}.okb svg.i{width:12px;height:12px;stroke-width:3}
+.dur{position:absolute;right:6px;bottom:6px;font-size:.6875rem;color:#fff;text-shadow:0 1px 3px #000}
+.selbar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));margin-top:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;box-shadow:0 -2px 12px var(--shadow)}
+.selbar .cnt{font-weight:600;padding:0 8px;margin-right:auto}
+.nores{text-align:center;padding:40px 10px;color:var(--muted)}
+/* sheets content */
+.menu{display:grid;margin:0 -8px}
+.menu button{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 10px;border-radius:var(--radius);text-align:left;font-size:1rem;background:none;border:0;cursor:pointer;color:var(--text)}
+.menu button:hover:not(:disabled){background:var(--surface-raised)}.menu button:disabled{opacity:.45;cursor:default}.menu .danger{color:var(--fail)}
+.field{display:grid;gap:6px;margin:4px 0}
+.field>label,.flabel{font-size:.875rem;font-weight:600;color:var(--muted)}
+.inp{width:100%;min-height:44px;border-radius:var(--radius);border:1px solid var(--border-strong);background:var(--surface);padding:0 12px;font-size:1rem;color:var(--text);outline:0}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pin-inp{display:block;max-width:220px;margin:4px auto 0;font-size:1.375rem;letter-spacing:.3em;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pin-inp::placeholder{letter-spacing:normal;font:.9375rem system-ui,sans-serif;color:var(--faint)}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sg{min-height:32px;padding:0 12px;font-size:.8125rem;cursor:pointer;border:1px solid var(--border)}
+.sg:hover{color:var(--accent);border-color:var(--accent)}
+.err{color:var(--fail);font-size:.875rem;min-height:18px}
+.set{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--divider)}
+.set .t{flex:1}.set .d{font-size:.875rem;color:var(--muted)}
+.sw{width:46px;height:28px;border-radius:999px;background:var(--border-strong);position:relative;flex:none;transition:background .15s;border:0;cursor:pointer;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0/.3);transition:transform .15s}
+.sw[aria-checked=true]{background:var(--accent)}.sw[aria-checked=true]::after{transform:translateX(18px)}
+.checks{display:grid;gap:2px}
+.checks label{display:flex;align-items:center;gap:12px;min-height:44px}
+.checks input{width:18px;height:18px;accent-color:var(--accent)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:.9375rem;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
+.hash{font:.75rem/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-sunken);padding:8px;border-radius:var(--radius-small);overflow-wrap:anywhere}
+.preview{height:190px;border-radius:var(--radius);display:grid;place-items:center;color:#fff}
+.demo{position:fixed;z-index:150;top:60px;right:max(12px,calc(50vw - 368px));width:min(300px,92vw);background:var(--surface);border:1px dashed var(--border-strong);border-radius:12px;padding:12px;box-shadow:0 12px 32px var(--shadow-strong);font-size:.875rem}
+.demo .menu button{min-height:40px;font-size:.875rem}.demo p{margin:0 0 4px;color:var(--faint)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <button class="brand" data-a="home" aria-label="Ether home"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#005fb8"/><stop offset="1" stop-color="#4ec9b0"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#g)"/><circle cx="50" cy="66" r="6.5" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"><path d="M37.98 53.98A17 17 0 0 1 62.02 53.98"/><path d="M30.2 46.2A28 28 0 0 1 69.8 46.2"/><path d="M22.42 38.42A39 39 0 0 1 77.58 38.42"/></g></svg>Ether</button>
+    <button class="demo-btn" data-a="demo" aria-expanded="false">Demo</button>
+    <button class="icon-button" data-a="history" aria-label="Previous sessions" title="Previous sessions"></button>
+    <button class="icon-button" data-a="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div id="notices"></div>
+  <main id="main" tabindex="-1"></main>
+</div>
+<div id="layer"></div>
+<div id="demo"></div>
+<input type="file" id="pk-media" accept="image/*,video/*" multiple hidden>
+<input type="file" id="pk-files" multiple hidden>
+<input type="file" id="pk-folder" webkitdirectory multiple hidden>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P={home:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',history:'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+phone:'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',tablet:'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',computer:'M4 5h16a1 1 0 0 1 1 1v10H3V6a1 1 0 0 1 1-1zM1 19h22',
+lock:'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',qr:'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2h-2',camera:'M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+paste:'M9 4h6v3H9zM8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2',copy:'M9 9h11v11H9zM5 15H4V4h11v1',image:'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4M15 9a1 1 0 1 0 0-.01',video:'M3 6h12v12H3zM15 10l6-3v10l-6-3',file:'M14 3H6v18h12V7zM14 3v4h4',folder:'M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z',
+check:'M5 12l5 5 9-10',x:'M6 6l12 12M18 6L6 18',more:'M5 12h.01M12 12h.01M19 12h.01',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',sliders:'M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4',select:'M4 4h16v16H4zM8 12l3 3 5-6',back:'M15 18l-6-6 6-6',download:'M12 3v12M7 10l5 5 5-5M4 20h16',trash:'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',info:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
+skip:'M4 12a8 8 0 0 1 14-5M18 3v4h-4M20 12a8 8 0 0 1-8 8',plus:'M12 5v14M5 12h14',retry:'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',wifi:'M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01M2 9a15 15 0 0 1 20 0',pause:'M8 5v14M16 5v14',out:'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3'};
+const I=(n,cls='')=>`<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+$('[data-a=history]').innerHTML=I('history');$('[data-a=settings]').innerHTML=I('gear');
+
+/* ---------- dummy data ---------- */
+const NOW=Date.now(),DAY=864e5,MB=1048576;
+const at=(d,h,m)=>{const x=new Date(NOW-d*DAY);x.setHours(h,m,0,0);return +x};
+let uid=0;const id=()=>'f'+(++uid);
+const hueOf=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))%360,7);
+const kindOf=n=>/\.(jpe?g|png|heic|gif|webp)$/i.test(n)?'photo':/\.(mov|mp4|m4v|webm)$/i.test(n)?'video':'other';
+const mk=(name,mb,date,status,extra={})=>({id:id(),name,size:Math.round(mb*MB),date,status,kind:kindOf(name),...extra});
+function pixelHistory(){return{in:[
+ mk('IMG_2231.JPG',3.2,at(0,14,5),'new',{camera:'Pixel 8 · f/1.7',place:'Athens, GR'}),mk('IMG_2232.JPG',2.9,at(0,14,5),'new',{camera:'Pixel 8 · f/1.7'}),
+ mk('VID_2233.MOV',48.1,at(0,14,6),'new',{dur:'0:42'}),mk('IMG_2234.HEIC',2.4,at(0,14,7),'downloaded'),mk('Scan_contract_signed_final_v3.pdf',0.8,at(0,14,9),'downloaded'),
+ mk('IMG_2235.JPG',3.6,at(0,14,9),'failed'),mk('IMG_2190.JPG',4.1,at(1,19,22),'downloaded',{place:'Piraeus, GR'}),mk('IMG_2191.JPG',3.8,at(1,19,22),'downloaded'),
+ mk('VID_2196.MP4',120.4,at(1,19,30),'damaged',{dur:'2:10'}),mk('IMG_2192.JPG',3.3,at(1,19,23),'new'),mk('Boarding pass.pdf',0.2,at(3,8,12),'downloaded'),
+ mk('IMG_1984.JPG',5.0,at(34,12,0),'downloaded'),mk('IMG_1985.JPG',4.7,at(34,12,1),'downloaded')],
+out:[mk('Holiday plan.docx',0.3,at(0,13,50),'sent'),mk('IMG_8810.JPG',2.7,at(0,13,51),'sent'),mk('IMG_8811.JPG',2.6,at(0,13,51),'skipped'),
+ mk('VID_8812.MOV',64.3,at(0,13,52),'failed',{dur:'1:03'}),mk('IMG_8790.JPG',3.1,at(1,20,4),'sent'),mk('IMG_8791.JPG',3.0,at(1,20,4),'sent'),
+ mk('Budget 2027.xlsx',0.1,at(1,20,6),'queued'),mk('IMG_8701.JPG',2.2,at(35,9,15),'sent')]}}
+const S={
+ me:{name:'Swift Perseus',pin:null},
+ settings:{nearby:true,ask:true,theme:'system'},
+ nearbyMode:'devices',
+ nearby:[{id:'n1',name:'Pixel 8',type:'phone',platform:'Android',pin:'1234'},{id:'n2',name:'Calm Athena',type:'tablet',platform:'iPad',pin:null},{id:'n3',name:'Bold Hector',type:'computer',platform:'Windows',pin:null,declines:true}],
+ store:{'Pixel 8':{type:'phone',platform:'Android',last:at(1,20,7),files:pixelHistory(),unfinished:[mk('VID_2240.MOV',88,at(1,20,9),'paused',{progress:.64}),mk('IMG_2241.JPG',3.4,at(1,20,9),'paused',{progress:.2}),mk('VID_2242.MOV',210,at(1,20,9),'needs-file',{progress:.64,pages:'1312 of 2048'})]},
+  'Noble Orion':{type:'phone',platform:'iPhone',last:at(3,9,40),files:{in:[mk('IMG_0042.HEIC',2.1,at(3,9,30),'downloaded'),mk('IMG_0043.HEIC',2.2,at(3,9,30),'new')],out:[mk('Recipe.pdf',0.4,at(3,9,35),'sent')]},unfinished:[]}},
+ slow:true,layout:'auto',screen:'home',code:null,pending:null,note:'',session:null,notice:null,demoOpen:false};
+
+/* ---------- helpers ---------- */
+const fmtSize=b=>b<1024?b+' B':b<MB?(b/1024).toFixed(0)+' KB':b<1024*MB?(b/MB).toFixed(1)+' MB':(b/1024/MB).toFixed(2)+' GB';
+const fmtTime=t=>new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+const dayKey=t=>new Date(t).toDateString();
+function dayLabel(t){const d=new Date(t),today=new Date(NOW);const diff=Math.round((new Date(today.toDateString())-new Date(d.toDateString()))/DAY);
+ return diff===0?'Today':diff===1?'Yesterday':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(',','')}
+const monthLabel=t=>new Date(t).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+function relLast(t){const l=dayLabel(t);return (l==='Today'||l==='Yesterday'?l:l.split(' ').slice(0,3).join(' '))+' '+fmtTime(t)}
+function mid(n,max=34){if(n.length<=max)return n;const dot=n.lastIndexOf('.');const ext=dot>0&&n.length-dot<8?n.slice(dot):'';const keep=max-ext.length-1;return n.slice(0,Math.ceil(keep*.6))+'…'+n.slice(n.length-ext.length-Math.floor(keep*.4))}
+const clock=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function thumb(f,big){const k=f.kind;if(k==='photo'||k==='video'){const h=hueOf(f.name);
+ return `<span class="ficon ph" style="background:linear-gradient(135deg,hsl(${h} 55% 58%),hsl(${(h+50)%360} 60% 38%))">${I(k==='video'?'video':'image')}</span>`}
+ const ext=f.name.split('.').pop().toLowerCase();const ft={pdf:'pdf',doc:'word',docx:'word',xls:'excel',xlsx:'excel',csv:'excel'}[ext]||'unknown';
+ return `<span class="ficon" style="color:var(--ft-${ft})">${I('file')}</span>`}
+const orbit=(px=24,label)=>`<svg class="orbit" width="${px}" height="${px}" viewBox="0 0 24 24" ${label?`role="img" aria-label="${label}"`:'aria-hidden="true"'}><circle class="o-ring" cx="12" cy="12" r="8.5"/><circle class="o-core" cx="12" cy="12" r="3"/><g class="o-sat"><circle cx="12" cy="3.5" r="2"/></g><g class="o-sat o-sat2"><circle cx="12" cy="3.5" r="1.4"/></g></svg>`;
+let toastT;function toast(m){clearTimeout(toastT);document.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=m;document.body.append(t);toastT=setTimeout(()=>t.remove(),2600)}
+function isPhone(){return matchMedia('(pointer:coarse)').matches}
+const darkMQ=matchMedia('(prefers-color-scheme: dark)');
+const hostTheme=['light','dark'].includes(document.documentElement.dataset.theme)?document.documentElement.dataset.theme:null;
+function applyTheme(){const t=S.settings.theme;document.documentElement.dataset.theme=t==='system'?(hostTheme||(darkMQ.matches?'dark':'light')):t}
+darkMQ.addEventListener?.('change',()=>S.settings.theme==='system'&&applyTheme());
+
+/* ---------- overlays ---------- */
+let onClose=null;
+function sheet(html,{drawer=false,close}={}){onClose=close||null;$('#layer').innerHTML=`<div class="scrim ${drawer?'drawer-scrim':''}" data-a="scrim"><div class="${drawer?'drawer':'sheet'}" role="dialog" aria-modal="true">${html}</div></div>`;
+ setTimeout(()=>($('#layer [autofocus]')||$('#layer .sheet button, #layer .drawer button'))?.focus({preventScroll:true}),30)}
+function closeSheet(){const f=onClose;onClose=null;$('#layer').innerHTML='';f&&f()}
+function confirmSheet(title,body,label,fn,{danger=true,extra=''}={}){sheet(`<h3>${title}</h3><p class="muted">${body}</p>${extra}<div class="acts"><button class="button" data-a="close">Cancel</button><button class="button ${danger?'button-danger':'button-primary'}" data-a="ok">${label}</button></div>`);
+ $('#layer [data-a=ok]').onclick=()=>{const extraVal=$('#layer input[type=checkbox]')?.checked;closeSheet();fn(extraVal)}}
+
+/* ---------- notices ---------- */
+function renderNotices(){let n=null;const running=S.session&&S.session.batches.some(b=>!b.finished);
+ if(running&&isPhone())n={t:'<b>Keep Ether open</b> until the transfer is done.'};
+ else if(S.notice==='update'&&!running)n={t:'A new version is ready.',a:'Update'};
+ patch($('#notices'),n?`<div class="notice" role="status">${I('info')}<span>${n.t}</span>${n.a?`<button class="button button-quiet sp" data-a="update">${n.a}</button>`:''}</div>`:'')}
+
+/* ---------- home ---------- */
+function homeHTML(){
+ const pin=S.me.pin?'••••':'none';
+ let h=`<section class="me" aria-label="This device"><button data-a="rename" aria-label="Device name: ${esc(S.me.name)}, change it"><span class="lbl">You are</span><b>${esc(S.me.name)}</b></button><span class="sep"></span>
+ <button data-a="set-pin" aria-label="PIN: ${S.me.pin?'set, change it':'none, set one'}"><span class="lbl">PIN</span><b>${pin}</b></button></section>`;
+ if(S.session){const c=S.session;const run=c.batches.some(b=>!b.finished);
+  return h+`<div class="sec"><h2>Connected</h2></div><button class="dev" data-a="open-session" aria-label="Open session with ${esc(c.peer.name)}"><span class="av">${I(c.peer.type)}</span><span class="t"><span class="nm">${esc(c.peer.name)}</span>
+  <span class="tags"><span class="badge" data-tone="${c.state==='lost'?'fail':'ok'}">${c.state==='lost'?'Connection lost':'Connected'}</span>${run?'<span class="badge" data-tone="info">Transferring</span>':''}</span></span>${I('back','chev')}</button>
+  <p class="small muted" style="margin:14px 2px 0">Nearby search is paused while you’re connected. Disconnect to connect to another device.</p>`}
+ const mode=!S.settings.nearby?'off':S.nearbyMode;
+ if(mode==='devices'){
+  h+=`<div class="sec">${orbit(24,'Looking for nearby devices')}<h2>Nearby</h2><span class="small muted" aria-live="polite">${S.pending?'':'Tap a device to connect'}</span></div><ul class="cards">`;
+  for(const d of S.nearby){const prev=S.store[d.name];const busy=S.pending&&S.pending.id!==d.id;const mine=S.pending&&S.pending.id===d.id;
+   h+=`<li><button class="dev" data-a="connect" data-id="${d.id}" ${busy||mine?'disabled':''} aria-label="Connect to ${esc(d.name)}"><span class="av">${I(d.type)}</span><span class="t"><span class="nm">${esc(d.name)}</span>
+   <span class="tags"><span class="badge">${esc(d.platform)}</span>${d.pin?`<span class="badge">${I('lock')}PIN</span>`:''}${prev?'<span class="badge">Paired before</span>':''}${prev&&prev.unfinished.length?`<span class="badge" data-tone="warn">${prev.unfinished.length} unfinished</span>`:''}</span>
+   ${mine?`<span class="wait"><span class="spinner"></span>Waiting for ${esc(d.name)} to accept…</span>`:''}</span></button>
+   ${mine?`<div class="row" style="justify-content:flex-end;margin-top:6px"><button class="button" data-a="cancel-req">Cancel</button></div>`:''}</li>`}
+  h+=`</ul>${S.note?`<p class="note" role="status">${esc(S.note)}</p>`:''}`;
+ }else{
+  const msg={empty:['Open Ether on another device.','Same Wi‑Fi. It shows up here.'],offline:['No internet, so nearby devices can’t be found.','Pair with a code instead.'],off:['Finding nearby devices is off.','Turn it on in Settings, or pair with a code.']}[mode];
+  h+=`<div class="empty">${mode==='empty'?`<span style="margin-bottom:10px">${orbit(72,'Looking for nearby devices')}</span>`:''}<p class="big">${msg[0]}</p><p class="muted">${msg[1]}</p>${mode==='off'?'<button class="button" data-a="nearby-on">Turn on</button>':''}</div>`}
+ h+=`<div class="foot"><button class="link small" data-a="code">${I('qr')} Can’t see it? Pair with a code</button></div>`;
+ return h}
+
+/* ---------- code pairing (secondary) ---------- */
+function qrSVG(seed){let s=hueOf(seed)+1;const r=()=>(s=(s*16807)%2147483647)/2147483647;const n=29;let p='';
+ const fin=(x,y)=>`<path d="M${x} ${y}h7v7h-7zM${x+1} ${y+1}v5h5v-5z" fill-rule="evenodd"/><path d="M${x+2} ${y+2}h3v3h-3z"/>`;
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x<8&&y<8)||(x>20&&y<8)||(x<8&&y>20))continue;if(r()<.48)p+=`M${x} ${y}h1v1h-1z`}
+ return `<svg viewBox="-1 -1 31 31" aria-label="Pairing QR code" role="img"><path d="${p}"/>${fin(0,0)}${fin(22,0)}${fin(0,22)}</svg>`}
+let codeTimer;
+function codeHTML(){const c=S.code;const back=`<button class="back" data-a="${c.mode==='menu'?'home':'code'}">${I('back')} ${c.mode==='menu'?'Back':'Other options'}</button>`;
+ if(c.mode==='menu')return back+`<h2 style="font-size:22px;margin-top:8px">Pair with a code</h2><p class="muted">For devices that don’t show up nearby. One shows a code, the other scans it and shows one back.</p>
+  <div class="choice"><button class="tile" data-a="show-offer">${I('qr')}Show my code</button><button class="tile" data-a="scan" data-k="offer">${I('camera')}Scan a code</button></div>
+  <div class="row"><button class="link" data-a="paste" data-k="offer">${I('paste')} Paste a code</button></div>`;
+ if(c.mode==='offer')return back+`<div class="pair"><p class="step">Step 1 of 2</p><h1>Scan this on the other device</h1><div class="qr">${qrSVG('offer'+c.n)}</div>
+  <div class="row" style="margin-top:10px"><button class="button button-quiet" data-a="copy-code">${I('copy')} Copy code</button><span class="small faint">Expires in <span id="exp">${clock(c.left)}</span> · works once</span></div>
+  <hr class="div"><p class="step">Step 2 of 2</p><h1 style="font-size:17px">Then get its reply</h1><div class="row"><button class="button button-primary" data-a="scan" data-k="reply">${I('camera')} Scan reply</button><button class="button" data-a="paste" data-k="reply">${I('paste')} Paste reply</button></div></div>`;
+ if(c.mode==='scan')return back+`<div class="pair"><h1>${c.kind==='reply'?'Scan the reply':'Scan the other device’s code'}</h1><div class="cam" aria-label="Camera"><i></i></div>
+  <p class="small faint">Demo: a code is “found” in 3 seconds.</p><div class="row"><button class="button" data-a="paste" data-k="${c.kind}">${I('paste')} Paste instead</button>${c.kind==='reply'?'<button class="button button-quiet" data-a="show-offer">Show my code again</button>':''}</div></div>`;
+ if(c.mode==='reply')return back+`<div class="pair"><p class="step">Step 2 of 2</p><h1>Show this to the first device</h1><div class="qr reply">${qrSVG('reply'+c.n)}</div>
+  <div class="row" style="margin-top:10px"><button class="button button-quiet" data-a="copy-code">${I('copy')} Copy code</button></div><p class="wait" style="justify-content:center"><span class="spinner"></span>Waiting for the first device to read it…</p></div>`;
+ if(c.mode==='connecting')return `<div class="empty"><span class="spinner" style="width:32px;height:32px;border-width:3px"></span><p class="big" style="font-size:20px">Connecting…</p></div>`}
+function startCode(mode,kind){clearInterval(codeTimer);S.code={mode,kind,n:(S.code?.n||0)+1,left:300};
+ if(mode==='offer')codeTimer=setInterval(()=>{S.code.left--;const e=$('#exp');if(e)e.textContent=clock(S.code.left);if(S.code.left<=0)clearInterval(codeTimer)},1000);
+ if(mode==='scan')codeTimer=setTimeout(()=>kind==='reply'?codeConnect():startCode('reply'),3000);
+ if(mode==='reply')codeTimer=setTimeout(codeConnect,4500);
+ S.screen='code';render()}
+function codeConnect(){clearInterval(codeTimer);clearTimeout(codeTimer);S.code={mode:'connecting'};render();setTimeout(()=>connected('Noble Orion','phone'),1200)}
+
+/* ---------- connecting & sessions ---------- */
+function connectTo(dev){S.note='';
+ if(dev.pin)return pinPrompt(dev);
+ S.pending={id:dev.id};render();
+ S.pending.t=setTimeout(()=>{S.pending=null;if(dev.declines){S.note=`${dev.name} declined.`;render();return}connected(dev.name,dev.type)},2200)}
+function pinPrompt(dev){sheet(`<span class="av" style="margin-bottom:10px">${I('lock')}</span><h3>Enter ${esc(dev.name)}’s PIN</h3><p class="muted small">It’s shown on ${esc(dev.name)} under “PIN”. Demo PIN: 1234</p>
+ <form id="pinf"><input class="inp pin-inp" id="pin" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="PIN" aria-label="PIN" autofocus><p class="err" id="pinerr" role="alert"></p>
+ <div class="acts"><button type="button" class="button" data-a="close">Cancel</button><button class="button button-primary">Connect</button></div></form>`);
+ $('#pinf').onsubmit=e=>{e.preventDefault();const v=$('#pin').value.trim();if(v!==dev.pin){$('#pinerr').textContent=v?'Wrong PIN. Try again.':'Enter the PIN.';$('#pin').select();return}
+  closeSheet();S.screen='code';S.code={mode:'connecting'};render();setTimeout(()=>connected(dev.name,dev.type),900)}}
+function newSession(name,type,data){return{peer:{name,type},check:['BXWU','KQ7M','R2PD'][Math.floor(Math.random()*3)],state:'connected',ms:12,tab:'transfer',
+ files:data?data.files:{in:[],out:[]},unfinished:data?data.unfinished:[],batches:[],elsewhere:null,v:{in:vs(),out:vs()}}}
+const vs=()=>({q:'',group:'day',view:'list',ft:new Set(),fs:new Set(),selecting:false,sel:new Set(),range:null,ranging:false});
+function connected(name,type){clearInterval(codeTimer);clearTimeout(codeTimer);const prev=S.store[name];
+ const open=data=>{S.session=newSession(name,type,data);S.screen='session';S.code=null;render();if(data)resumeUnfinished()};
+ if(!prev)return open(null);
+ S.screen='home';render();
+ sheet(`<span class="av" style="margin-bottom:10px">${I(type)}</span><h3>Restore your session with ${esc(name)}?</h3>
+  <p class="muted">Last connected ${relLast(prev.last)} · ${prev.files.in.length} received, ${prev.files.out.length} sent${prev.unfinished.length?` · <b>${prev.unfinished.length} unfinished</b> resume`:''}.</p>
+  <p class="small faint">Start fresh clears your history with ${esc(name)} on both devices.</p>
+  <div class="acts"><button class="button" data-a="fresh">Start fresh</button><button class="button button-primary" data-a="restore">Restore</button></div>`,{close:()=>{}});
+ $('#layer [data-a=restore]').onclick=()=>{closeSheet();open(prev)};
+ $('#layer [data-a=fresh]').onclick=()=>{closeSheet();delete S.store[name];open(null);toast(`Started fresh. History cleared on both devices.`)}}
+function resumeUnfinished(){const s=S.session;const go=s.unfinished.filter(f=>f.status==='paused');if(!go.length)return;
+ startBatch('out',go.map(f=>({name:f.name,size:f.size,progress:f.progress})),{title:`Resuming ${go.length} files`});s.unfinished=s.unfinished.filter(f=>f.status!=='paused')}
+function disconnect(){const s=S.session;stopAll(true);S.store[s.peer.name]={type:s.peer.type,platform:S.nearby.find(d=>d.name===s.peer.name)?.platform||S.store[s.peer.name]?.platform||'',last:Date.now(),files:s.files,unfinished:s.unfinished};S.session=null;S.screen='home';S.pending=null;render();toast(`Disconnected from ${s.peer.name}.`)}
+
+/* ---------- transfers ---------- */
+let bid=0;
+function startBatch(dir,files,{title}={}){const s=S.session;const b={id:++bid,dir,title,start:Date.now(),finished:false,adv:false,
+ files:files.map((f,i)=>({...mk(f.name,f.size/MB,Date.now(),'queued'),size:f.size,done:(f.progress||0)*f.size,skip:f.skip,phase:0}))};
+ b.files.forEach(f=>{const rec={...f,status:dir==='out'?'queued':'waiting',batch:b.id};s.files[dir].unshift(rec);f.rec=rec});
+ s.batches.push(b);s.tab='transfer';render()}
+function stopAll(quiet){const s=S.session;if(!s)return;for(const b of s.batches)if(!b.finished){for(const f of b.files)if(f.status!=='done'&&f.status!=='skipped'){f.status='stopped';s.files[b.dir]=s.files[b.dir].filter(r=>r!==f.rec)}b.finished=true;b.stopped=true}if(!quiet)render()}
+const SPEED=7*MB;let last=performance.now();
+setInterval(()=>{const now=performance.now(),dt=(now-last)/1000;last=now;const s=S.session;if(!s||s.state!=='connected')return;let changed=false;
+ for(const b of s.batches){if(b.finished)continue;const active=b.files.filter(f=>f.status==='queued'||f.status==='moving'||f.status==='checking').slice(0,S.slow?1:2);
+  if(!active.length){b.finished=true;b.end=Date.now();changed=true;if(b.dir==='in'&&!b.stopped)toast(`Received ${b.files.length} files from ${s.peer.name}.`);continue}
+  for(const f of active){changed=true;
+   if(f.skip){f.status='checking';f.phase+=dt;if(f.phase>.8){f.status='skipped';f.rec.status='skipped'}continue}
+   f.status='moving';f.rec.status=b.dir==='out'?'sending':'receiving';f.done=Math.min(f.size,f.done+(S.slow?f.size*dt/5:SPEED*dt/active.length+f.size*.008));f.rec.progress=f.done/f.size;
+   if(f.done>=f.size){f.status='done';f.rec.status=b.dir==='out'?'sent':'new';delete f.rec.progress}}}
+ if(changed)paintLive()},120);
+function morph(a,b){if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName){a.replaceWith(b.cloneNode(true));return}
+ if(a.nodeType===3){if(a.nodeValue!==b.nodeValue)a.nodeValue=b.nodeValue;return}if(a.nodeType!==1)return;
+ for(const at of [...a.attributes])if(!b.hasAttribute(at.name))a.removeAttribute(at.name);
+ for(const at of [...b.attributes])if(a.getAttribute(at.name)!==at.value)a.setAttribute(at.name,at.value);
+ const ac=[...a.childNodes],bc=[...b.childNodes];bc.forEach((n,i)=>i<ac.length?morph(ac[i],n):a.appendChild(n.cloneNode(true)));for(let i=bc.length;i<ac.length;i++)ac[i].remove()}
+function patch(el,html){if(!el)return;const t=el.cloneNode(false);t.innerHTML=html;const ac=[...el.childNodes],bc=[...t.childNodes];bc.forEach((n,i)=>i<ac.length?morph(ac[i],n):el.appendChild(n.cloneNode(true)));for(let i=bc.length;i<ac.length;i++)ac[i].remove()}
+function paintLive(){const s=S.session;const wide=isWide();if(wide)patch($('.side'),homeHTML());if(!(S.screen==='session'||(wide&&s&&S.screen!=='code')))return;
+ if(s.tab==='transfer')patch($('#panel'),transferHTML());else if(s.batches.some(b=>!b.finished))patch($('#listwrap'),listHTML(s.tab==='received'?'in':'out'));
+ const tb=$('#tabs');if(tb){const t=document.createElement('div');t.innerHTML=tabsHTML();patch(tb,t.firstElementChild.innerHTML)}renderNotices()}
+function bstats(bs){const files=bs.flatMap(b=>b.files);const total=files.reduce((a,f)=>a+f.size,0),done=files.reduce((a,f)=>a+(f.status==='skipped'?f.size:f.done),0);
+ const fin=files.filter(f=>f.status==='done').length,sk=files.filter(f=>f.status==='skipped').length;const el=(Date.now()-Math.min(...bs.map(b=>b.start)))/1000;
+ const rate=done/Math.max(el,.5);return{total,done,fin,sk,n:files.length,el,rate,left:(total-done)/Math.max(rate,1)}}
+function fileLine(f){const peer=esc(S.session.peer.name);let st;
+ if(f.status==='done')st=`<span class="fs ok">Done</span>`;else if(f.status==='queued')st=`<span class="fs mut">Queue</span>`;
+ else if(f.status==='checking')st=`<span class="fs acc"><span class="spinner sm"></span> Checking…</span>`;
+ else if(f.status==='skipped')st=`<span class="fs mut">Skipped · already on ${peer}</span>`;else if(f.status==='stopped')st=`<span class="fs fail">Stopped</span>`;
+ else st=`<div class="progress-bar" role="progressbar" aria-label="${esc(f.name)}" aria-valuenow="${Math.round(f.done/f.size*100)}"><i class="progress-fill" style="width:${(f.done/f.size*100).toFixed(1)}%"></i></div>`;
+ return `<li class="f">${thumb(f)}<span class="t"><span class="fname" title="${esc(f.name)}">${esc(mid(f.name))} <span class="muted">(${fmtSize(f.size)})</span></span>${st}</span></li>`}
+function transferHTML(){const s=S.session;const shown=s.batches.filter(b=>!b.cleared);const peer=esc(s.peer.name);
+ let h='';
+ if(s.elsewhere)h+=`<div class="prompt"><b>${s.elsewhere.n} unfinished files</b> from ${esc(s.elsewhere.from)} (${fmtSize(s.elsewhere.bytes)}). Send them to ${peer}?<div class="row"><button class="button button-quiet" data-a="else-no">Not now</button><button class="button button-primary" data-a="else-yes">Send to ${peer}</button></div></div>`;
+ const needs=s.unfinished.filter(f=>f.status==='needs-file');
+ if(!shown.length){
+  h+=`<div class="picks">${pickTiles()}</div><p class="small faint" style="text-align:center;margin-top:14px">Files go straight to ${peer}, encrypted. Received files download as one ZIP.</p>`;
+  if(needs.length)h+=needsHTML(needs);return h}
+ for(const b of shown){const st=bstats([b]);
+  h+=`<div class="bh"><b style="color:var(--text);font-size:15px">${b.title||(b.dir==='out'?`Sending to ${peer}`:`Receiving from ${peer}`)}</b><span>${st.fin+st.sk} of ${st.n}</span>
+  <button class="icon-button sp" data-a="batch-menu" data-b="${b.id}" aria-label="Batch actions">${I('more')}</button></div><ul class="files">${b.files.map(f=>fileLine(f)).join('')}</ul>`}
+ if(needs.length)h+=needsHTML(needs);
+ const run=shown.filter(b=>!b.finished),all=run.length?run:shown,st=bstats(all),done=!run.length,anyAdv=shown.some(b=>b.adv);
+ const lost=s.state!=='connected';
+ h+=`<div class="total"><div style="display:flex;justify-content:space-between;gap:10px"><span style="font-size:17px">${done?'Finished':'Total progress'} <span class="muted">(${clock(done?(Math.max(...all.map(b=>b.end||Date.now()))-Math.min(...all.map(b=>b.start)))/1000:st.el)})</span></span>${done?'':`<span class="muted">${Math.floor(st.done/st.total*100)}%</span>`}</div>
+ <div class="progress-bar" role="progressbar" aria-label="Total progress" aria-valuenow="${Math.floor(st.done/st.total*100)}"><i class="progress-fill" style="width:${(st.done/st.total*100).toFixed(1)}%"></i></div>
+ ${anyAdv?`<div class="adv"><span>${st.fin} of ${st.n} done${st.sk?` · ${st.sk} skipped`:''}</span><span>${fmtSize(st.done)} of ${fmtSize(st.total)}${done?'':` · ${lost?'Waiting for the connection…':`${fmtSize(st.rate)}/s · ${Math.ceil(st.left)} s left`}`}</span></div>`:''}
+ <div class="acts"><button class="button" data-a="adv">${I('info')} ${anyAdv?'Hide':'Advanced'}</button>${done?`<button class="button" data-a="more-send">${I('plus')} Send more</button><button class="button button-quiet" data-a="done" style="color:var(--accent);font-weight:600">${I('check')} Done</button>`:`<button class="button" data-a="stop">${I('x')} Stop</button>`}</div></div>`;
+ return h}
+function needsHTML(needs){return `<div class="bh"><b style="color:var(--text);font-size:15px">Needs picking again</b></div><ul class="files">${needs.map(f=>`<li class="f">${thumb(f)}<span class="t"><span class="fname">${esc(f.name)} <span class="muted">(${fmtSize(f.size)})</span></span><span class="pickrow">Pick it again to resume from page ${f.pages} (${Math.round(f.progress*100)}%)</span></span><button class="button" data-a="repick" data-id="${f.id}">Pick</button></li>`).join('')}</ul>`}
+function pickTiles(){const ph=isPhone();return (ph?[['media','image','Photos & videos'],['files','file','Files']]:[['files','file','Files'],['folder','folder','Folder'],['media','image','Photos & videos']]).map(([k,i,l])=>`<button class="tile" data-a="pick" data-k="${k}">${I(i)}${l}</button>`).join('')}
+function sampleFiles(){return[{name:'IMG_2030.JPG',size:2.1*MB,skip:true},...['IMG_2031.MOV','IMG_2032.JPG','IMG_2033.MOV','IMG_2034.JPG','IMG_2035.HEIC'].map((n,i)=>({name:n,size:(i%2?38:4.2+i)*MB}))]}
+
+/* ---------- received / sent ---------- */
+function statusOf(dir,f){const peer=esc(S.session.peer.name);
+ const m={new:null,downloaded:['ok','Downloaded'],failed:['fail','Failed'],damaged:['fail','Damaged · ask to send again'],paused:['warn','Paused'],
+  sent:null,queued:['','Not sent yet'],skipped:['','Skipped · already on '+peer],sending:['','Sending'],receiving:['','Receiving'],waiting:['','Waiting']};return m[f.status]}
+function visible(dir){const s=S.session,v=s.v[dir];const words=v.q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/\s+/).filter(Boolean);
+ const stMap={new:'new',downloaded:'downloaded',failed:'failed',damaged:'failed',sent:'sent',queued:'queued',skipped:'sent'};
+ return s.files[dir].filter(f=>(!v.ft.size||v.ft.has(f.kind))&&(!v.fs.size||v.fs.has(stMap[f.status]))&&words.every(w=>f.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(w))).sort((a,b)=>b.date-a.date)}
+function groups(dir){const v=S.session.v[dir];const g=new Map();for(const f of visible(dir)){const k=v.group==='day'?dayKey(f.date):monthLabel(f.date);if(!g.has(k))g.set(k,{label:v.group==='day'?dayLabel(f.date):k,items:[]});g.get(k).items.push(f)}return[...g.values()]}
+function listToolHTML(dir){const v=S.session.v[dir];const filt=v.ft.size+v.fs.size;
+ return `<div class="tool"><label class="search">${I('search')}<input type="search" id="q" placeholder="Search" aria-label="Search files" value="${esc(v.q)}">${v.q?`<button class="icon-button icon-button-small" data-a="clear-q" aria-label="Clear search">${I('x')}</button>`:''}</label>
+ <button class="icon-button" data-a="selecting" aria-pressed="${v.selecting}" aria-label="Select" title="Select">${I('select')}</button>
+ <button class="icon-button" data-a="view" aria-label="View and filter${filt?`, ${filt} filters on`:''}" title="View and filter">${I('sliders')}${filt?'<span class="badge-dot"></span>':''}</button></div>`}
+function listHTML(dir){const s=S.session,v=s.v[dir];const gs=groups(dir);const filt=v.ft.size+v.fs.size;let h='';
+ if(filt)h+=`<div class="fchips">Filtered: ${[...v.ft,...v.fs].map(x=>({photo:'Photos',video:'Videos',other:'Other files',new:'Not downloaded',downloaded:'Downloaded',failed:'Failed',sent:'Sent',queued:'Not sent yet'}[x])).join(' · ')}<button class="link small" data-a="clear-f">Clear</button></div>`;
+ if(!gs.length){const all=s.files[dir].length;return h+`<div class="nores">${!all?(dir==='in'?'Nothing received yet.':'Nothing sent yet.'):v.q?`No files match “${esc(v.q)}”${filt?' with these filters':''}.`:'No files match these filters.'}</div>`}
+ for(const g of gs){const allSel=g.items.every(f=>v.sel.has(f.id));
+  h+=`<div class="gh"><span>${g.label} <span class="faint" style="font-weight:500">${g.items.length}</span></span>${v.selecting?`<button class="link small" data-a="sel-group" data-g="${esc(g.label)}">${allSel?'Unselect':'Select'} ${v.group==='day'?'day':'month'}</button>`:''}</div>`;
+  if(v.view==='tiles'){h+=`<div class="grid">${g.items.map(f=>{const st=statusOf(dir,f);const sel=v.sel.has(f.id);const h2=hueOf(f.name);
+   return `<button class="tilebox ${sel?'sel':''}" data-a="item" data-id="${f.id}" aria-label="${esc(f.name)}${st?', '+st[1]:''}" title="${esc(f.name)}${st?', '+st[1]:''}" ${f.kind!=='other'?`style="background:linear-gradient(135deg,hsl(${h2} 55% 58%),hsl(${(h2+50)%360} 60% 38%));color:#fff"`:''}>${I(f.kind==='video'?'video':f.kind==='photo'?'image':'file')}
+   ${v.selecting?`<span class="cb">${I('check')}</span>`:''}${f.status==='downloaded'?`<span class="okb" title="Downloaded">${I('check')}</span>`:''}${f.progress!=null?`<span class="ttag">${Math.round(f.progress*100)}%</span>`:st&&f.status!=='downloaded'?`<span class="ttag ${st[0]==='fail'?'fail':''}">${st[1]}</span>`:f.dur?`<span class="dur">${f.dur}</span>`:''}</button>`}).join('')}</div>`;continue}
+  h+=`<ul class="list">${g.items.map(f=>{const st=statusOf(dir,f);const sel=v.sel.has(f.id);
+   return `<li class="li ${sel?'sel':''}"><button class="main" data-a="item" data-id="${f.id}" aria-label="${esc(f.name)}${st?', '+st[1]:''}">${v.selecting?`<span class="cb" role="checkbox" aria-checked="${sel}">${I('check')}</span>`:''}${thumb(f)}
+   <span class="t" style="flex:1"><span class="fname" style="display:block" title="${esc(f.name)}">${esc(mid(f.name))}</span><span class="meta">${fmtSize(f.size)} · ${fmtTime(f.date)}${st&&f.progress==null?` · <span class="${st[0]}">${st[0]==='ok'?I('check','')+' ':''}${st[1]}</span>`:''}</span>
+   ${f.progress!=null?`<div class="progress-bar"><i class="progress-fill" style="width:${(f.progress*100).toFixed(1)}%"></i></div>`:''}</span></button>
+   ${v.selecting?'':`<button class="icon-button" data-a="row-menu" data-id="${f.id}" aria-label="More actions: ${esc(f.name)}">${I('more')}</button>`}</li>`}).join('')}</ul>`}
+ if(v.selecting){const n=v.sel.size;const allVis=visible(dir);const allSel=allVis.length&&allVis.every(f=>v.sel.has(f.id));
+  h+=`<div class="selbar"><span class="cnt">${n} selected</span><button class="button" data-a="sel-all">${allSel?'Unselect all':'Select all'}</button><button class="button" data-a="range" aria-pressed="${v.ranging}" style="${v.ranging?'color:var(--accent)':''}">Range</button>
+  ${dir==='in'?`<button class="button button-primary" data-a="zip" ${n?'':'disabled'}>${I('download')} ZIP (${n})</button><button class="icon-button" data-a="del-sel" ${n?'':'disabled'} aria-label="Delete ${n}" style="color:var(--fail)">${I('trash')}</button>`:''}</div>`}
+ return h}
+
+/* ---------- session ---------- */
+function tabsHTML(){const s=S.session;const run=s.batches.some(b=>!b.finished);
+ const t=(k,l,n)=>`<button class="tab" role="tab" aria-selected="${s.tab===k}" data-a="tab" data-k="${k}">${l}${n!=null?`<span class="n">${n}</span>`:''}</button>`;
+ return `<div class="tabs" role="tablist" id="tabs">${t('transfer',run?'<span class="dot" style="background:var(--accent)" aria-label="transferring"></span>Send':'Send',null)}${t('received','Received',s.files.in.length)}${t('sent','Sent',s.files.out.length)}</div>`}
+function sessionHTML(){const s=S.session;const lost=s.state==='lost';const near=S.nearby.find(d=>d.name===s.peer.name);
+ const paused=s.batches.filter(b=>!b.finished).flatMap(b=>b.files).filter(f=>f.status!=='done'&&f.status!=='skipped');
+ let h=`<div class="peer ${lost?'lost':''}"><span class="av" ${lost?'style="background:var(--fail);color:#fff"':''}>${I(s.peer.type)}</span><div class="t"><div class="nm" title="${esc(s.peer.name)}">${esc(s.peer.name)}</div>
+ <div class="small muted st">${lost?`<span class="dot bad"></span>Connection lost${paused.length?` · ${paused.length} paused`:''}`:`<span class="dot"></span>Connected · ${s.ms} ms`}</div>
+ ${lost?`<div class="acts">${near?`<button class="button button-primary" data-a="reconnect">Reconnect</button>`:''}<button class="button" data-a="code">${I('qr')} Use a code</button></div>`:''}</div>
+ ${lost?'':`<button class="chip" data-a="check" aria-label="Check code ${s.check}. Both screens must show the same code."><span class="cl">Check</span><b>${s.check}</b></button>`}
+ <button class="icon-button" data-a="session-menu" aria-label="Session actions">${I('more')}</button></div>`;
+ h+=tabsHTML();
+ if(s.tab==='transfer')h+=`<div id="panel" role="tabpanel" style="display:flex;flex-direction:column;flex:1">${transferHTML()}</div>`;
+ else{const dir=s.tab==='received'?'in':'out';h+=`<div role="tabpanel" style="display:flex;flex-direction:column;flex:1">${listToolHTML(dir)}<div id="listwrap" style="display:flex;flex-direction:column;flex:1">${listHTML(dir)}</div></div>`}
+ return h}
+
+/* ---------- render ---------- */
+const wideMQ=matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 600px)');
+function isWide(){return S.layout==='column'?false:wideMQ.matches}
+function paneHTML(){if(S.screen==='code')return codeHTML();if(S.session)return sessionHTML();
+ return `<div class="empty">${orbit(72,'Looking for nearby devices')}<p class="big" style="font-size:1.375rem">Choose a device to connect.</p><p class="muted">Nearby devices are listed on the left.</p></div>`}
+function render(){const m=$('#main');const wide=isWide();$('.app').classList.toggle('desk',wide);m.classList.toggle('split',wide);
+ m.innerHTML=wide?`<aside class="side">${homeHTML()}</aside><section class="pane">${paneHTML()}</section>`:S.screen==='home'?homeHTML():S.screen==='code'?codeHTML():sessionHTML();
+ renderNotices();if(S.demoOpen)renderDemo()}
+wideMQ.addEventListener?.('change',()=>render());
+function renderList(){const s=S.session;const dir=s.tab==='received'?'in':'out';$('#listwrap').innerHTML=listHTML(dir);
+ const tool=$('.tool');if(tool){const tmp=document.createElement('div');tmp.innerHTML=listToolHTML(dir);
+  const fresh=[...tmp.firstElementChild.querySelectorAll(':scope>.icon-button')];tool.querySelectorAll(':scope>.icon-button').forEach((b,i)=>b.replaceWith(fresh[i]))}}
+
+/* ---------- sheets ---------- */
+const HEROES=['Perseus','Achilles','Atalanta','Odysseus','Hector','Orion','Theseus','Hippolyta','Jason','Ajax','Penelope','Castor','Pollux','Icarus','Medea','Hercules','Zeus','Hera','Poseidon','Athena','Apollo','Artemis','Hermes','Ares','Aphrodite','Hephaestus','Demeter','Dionysus','Hestia','Persephone','Hades','Helios','Selene','Eos','Iris','Nike'];
+const ADJ=['Swift','Brave','Bold','Calm','Bright','Noble','Clever','Mighty','Quick','Silent','Golden','Lucky'];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function suggHTML(){const set=new Set();while(set.size<3)set.add(pick(ADJ)+' '+pick(HEROES));return [...set].map(n=>`<button type="button" class="badge sg" data-a="sugg" data-n="${n}">${n}</button>`).join('')+`<button type="button" class="badge sg" data-a="sugg-more" aria-label="More suggestions">${I('retry')} More</button>`}
+function renameSheet(){sheet(`<h3>Device name</h3><p class="muted small">Nearby devices see this name.</p>
+ <form id="rnf"><input class="inp" id="rn" maxlength="32" value="${esc(S.me.name)}" aria-label="Device name" autofocus>
+ <div class="sugg" id="sugg" aria-label="Suggestions">${suggHTML()}</div><p class="err" id="rnerr" role="alert"></p>
+ <div class="acts"><button type="button" class="button" data-a="close">Cancel</button><button class="button button-primary">Save</button></div></form>`);
+ setTimeout(()=>$('#rn')?.select(),40);
+ $('#rnf').onsubmit=e=>{e.preventDefault();const v=$('#rn').value.trim();if(!v){$('#rnerr').textContent='Enter a name.';return}S.me.name=v;closeSheet();render();toast('Name saved.')}}
+function settingsSheet(){const st=S.settings;const sw=(k,l,d)=>`<div class="set"><span class="t"><span>${l}</span>${d?`<div class="d">${d}</div>`:''}</span><button class="sw" role="switch" aria-checked="${st[k]}" aria-label="${l}" data-a="sw" data-k="${k}"></button></div>`;
+ sheet(`<div style="display:flex;align-items:center"><h3 style="flex:1">Settings</h3><button class="icon-button" data-a="close" aria-label="Close">${I('x')}</button></div>
+ <div class="set" style="border-top:0"><span class="t"><span>Device name</span><div class="d">${esc(S.me.name)}</div></span><button class="button" data-a="rename">Change</button></div>
+ <div class="set"><span class="t"><span>PIN</span><div class="d">${S.me.pin?'Devices must enter it to connect to you.':'Anyone nearby can ask to connect; you accept each time.'}</div></span><button class="button" data-a="set-pin">${S.me.pin?'Change':'Set PIN'}</button></div>
+ ${sw('nearby','Find nearby devices','Uses public relays to find devices on the same Wi‑Fi.')}${sw('ask','Ask before receiving','Review each batch before it arrives.')}
+ <div class="set"><span class="t">Theme</span><div class="segmented">${['system','light','dark'].map(t=>`<button aria-pressed="${st.theme===t}" data-a="theme" data-k="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>
+ <div class="set"><span class="t"><span>Storage</span><div class="d">1.2 GB used · 21 GB free</div></span><button class="button button-danger" data-a="clear-all">Clear all data…</button></div>
+ <p class="small faint" style="margin:14px 0 0">Ether 0.1.0</p>`,{close:()=>render()})}
+function setPinSheet(){sheet(`<span class="av" style="margin-bottom:10px">${I('lock')}</span><h3>${S.me.pin?'Change your PIN':'Set a PIN'}</h3><p class="muted small">Devices must enter it to connect to you. With a PIN, you don’t need to accept each request.</p>
+ <form id="spf"><input class="inp pin-inp" id="np" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" placeholder="4–8 digits" aria-label="New PIN, 4 to 8 digits" autofocus><p class="err" id="nperr" role="alert"></p>
+ <div class="acts">${S.me.pin?'<button type="button" class="button button-danger" data-a="rm-pin">Remove PIN</button>':''}<button type="button" class="button" data-a="close">Cancel</button><button class="button button-primary">Save</button></div></form>`);
+ $('#spf').onsubmit=e=>{e.preventDefault();const v=$('#np').value.trim();if(!/^\d{4,8}$/.test(v)){$('#nperr').textContent='Use 4 to 8 digits.';return}S.me.pin=v;closeSheet();render();toast('PIN set.')};
+ $('#layer [data-a=rm-pin]')&&($('#layer [data-a=rm-pin]').onclick=()=>{S.me.pin=null;closeSheet();render();toast('PIN removed.')})}
+function historySheet(){const rows=Object.entries(S.store).sort((a,b)=>b[1].last-a[1].last);
+ sheet(`<div style="display:flex;align-items:center"><h3 style="flex:1">Previous sessions</h3><button class="icon-button" data-a="close" aria-label="Close">${I('x')}</button></div>
+ <p class="muted small">Connect to one of these devices and Ether offers to restore its session.</p>
+ ${rows.length?`<div class="cards" style="margin-top:12px">${rows.map(([n,d])=>{const near=S.nearby.find(x=>x.name===n)&&S.settings.nearby&&S.nearbyMode==='devices';const live=S.session?.peer.name===n;
+  return `<div style="display:flex;gap:6px;align-items:center"><button class="dev" data-a="hist-open" data-n="${esc(n)}" ${live?'disabled':''} style="padding:10px"><span class="av">${I(d.type)}</span><span class="t"><span class="nm" style="font-size:15px">${esc(n)}</span>
+  <span class="small muted">${esc(d.platform||'')} · ${live?'Connected now':'Last connected '+relLast(d.last)}</span><span class="tags">${near&&!live?'<span class="badge" data-tone="ok">Nearby</span>':''}${d.unfinished.length?`<span class="badge" data-tone="warn">${d.unfinished.length} unfinished</span>`:''}</span></span></button>
+  <button class="icon-button" data-a="hist-del" data-n="${esc(n)}" ${live?'disabled':''} aria-label="Clear session with ${esc(n)}">${I('trash')}</button></div>`}).join('')}</div>`:'<p class="nores">No previous sessions.</p>'}`,{drawer:true})}
+function viewSheet(dir){const v=S.session.v[dir];const ck=(set,k,l)=>`<label><input type="checkbox" data-a="ft" data-set="${set}" data-k="${k}" ${v[set].has(k)?'checked':''}>${l}</label>`;
+ sheet(`<div style="display:flex;align-items:center"><h3 style="flex:1">View &amp; filter</h3><button class="icon-button" data-a="close" aria-label="Close">${I('x')}</button></div>
+ <div class="field"><span class="flabel">Group by</span><div class="segmented">${[['day','Day'],['month','Month']].map(([k,l])=>`<button aria-pressed="${v.group===k}" data-a="vset" data-p="group" data-k="${k}">${l}</button>`).join('')}</div></div>
+ <div class="field"><span class="flabel">Show as</span><div class="segmented">${[['list','List'],['tiles','Tiles']].map(([k,l])=>`<button aria-pressed="${v.view===k}" data-a="vset" data-p="view" data-k="${k}">${l}</button>`).join('')}</div></div>
+ <fieldset class="field" style="border:0;padding:0"><legend class="flabel">Type</legend><div class="checks">${ck('ft','photo','Photos')}${ck('ft','video','Videos')}${ck('ft','other','Other files')}</div></fieldset>
+ <fieldset class="field" style="border:0;padding:0"><legend class="flabel">Status</legend><div class="checks">${dir==='in'?ck('fs','new','Not downloaded')+ck('fs','downloaded','Downloaded')+ck('fs','failed','Failed'):ck('fs','sent','Sent')+ck('fs','queued','Not sent yet')+ck('fs','failed','Failed')}</div></fieldset>
+ <div class="acts"><button class="button" data-a="clear-f">Clear filters</button><button class="button button-primary" data-a="close">Done</button></div>`,{close:()=>renderList()})}
+function findFile(fid){const s=S.session;for(const d of['in','out']){const f=s.files[d].find(x=>x.id===fid);if(f)return[f,d]}return[]}
+function detailsSheet(fid){const[f,dir]=findFile(fid);if(!f)return;const st=statusOf(dir,f);const h=hueOf(f.name);
+ sheet(`<div style="display:flex;align-items:center"><h3 style="flex:1;overflow-wrap:anywhere">${esc(f.name)}</h3><button class="icon-button" data-a="close" aria-label="Close">${I('x')}</button></div>
+ ${f.kind!=='other'?`<div class="preview" style="background:linear-gradient(135deg,hsl(${h} 55% 58%),hsl(${(h+50)%360} 60% 38%))">${I(f.kind==='video'?'video':'image')}</div>`:''}
+ <dl class="kv"><dt>Size</dt><dd>${fmtSize(f.size)}</dd><dt>${dir==='in'?'Received':'Sent'}</dt><dd>${dayLabel(f.date)} ${fmtTime(f.date)}</dd>${f.kind!=='other'?`<dt>Date taken</dt><dd>${dayLabel(f.date-36e5)} ${fmtTime(f.date-36e5)} (UTC+2)</dd>`:''}
+ ${f.place?`<dt>Location</dt><dd>${esc(f.place)} · <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(f.place)}" target="_blank" rel="noopener">Open in Maps</a></dd>`:''}${f.camera?`<dt>Camera</dt><dd>${esc(f.camera)}</dd>`:''}${f.dur?`<dt>Length</dt><dd>${f.dur}</dd>`:''}
+ <dt>Status</dt><dd>${st?st[1]:dir==='in'?'Not downloaded yet':'Sent'}</dd><dt>Verified</dt><dd>${f.status==='damaged'?'<span style="color:var(--fail)">Stored copy is damaged</span>':'All pages match their hashes'}</dd></dl>
+ <div class="flabel" style="margin-bottom:6px">SHA-256</div><div id="sha"><button class="button" data-a="sha">Compute</button></div>
+ <div class="acts">${dir==='in'&&f.status!=='damaged'?`<button class="button button-primary" data-a="zip-one" data-id="${f.id}">${I('download')} Download ZIP</button>`:''}${dir==='out'?`<button class="button" data-a="again" data-id="${f.id}">${I('retry')} Send again</button>`:''}<button class="button button-danger" data-a="del-one" data-id="${f.id}">${I('trash')} Delete</button></div>`)}
+function rowMenu(fid){const[f,dir]=findFile(fid);const items=[];if(dir==='in'&&!['damaged','failed'].includes(f.status))items.push(['zip-one','download','Download ZIP']);
+ if(dir==='out')items.push(['again','retry','Send again']);items.push(['details','info','Details']);if(['failed','paused'].includes(f.status))items.push(['del-one','trash','Delete partial','danger']);else items.push(['del-one','trash','Delete','danger']);
+ sheet(`<h3 style="overflow-wrap:anywhere">${esc(mid(f.name,40))}</h3>${f.status==='damaged'?`<p class="note">The stored copy of ${esc(f.name)} is damaged. Ask ${esc(S.session.peer.name)} to send it again.</p>`:''}<div class="menu">${items.map(([a,i,l,c])=>`<button data-a="${a}" data-id="${f.id}" class="${c||''}">${I(i)}${l}</button>`).join('')}</div>`)}
+function sessionMenu(){const s=S.session;sheet(`<h3>${esc(s.peer.name)}</h3><div class="menu">
+ ${s.state==='connected'?`<button data-a="disconnect">${I('out')}Disconnect</button>`:`<button data-a="disconnect">${I('out')}Close session</button>`}
+ ${s.files.out.length?`<button data-a="clear" data-k="out">${I('trash')}Clear sent…</button>`:''}${s.files.in.length?`<button data-a="clear" data-k="in">${I('trash')}Clear received…</button>`:''}
+ <button data-a="clear" data-k="all" class="danger">${I('trash')}Reset this device…</button></div>`)}
+function batchMenu(b){const s=S.session;const failed=b.files.some(f=>f.status==='stopped');sheet(`<h3>${b.dir==='out'?'Sending':'Receiving'} · ${b.files.length} items</h3><div class="menu">
+ ${!b.finished?`<button data-a="stop-one" data-b="${b.id}" class="danger">${I('x')}Stop this batch</button>`:''}
+ ${b.dir==='out'&&failed?`<button data-a="retry" data-b="${b.id}">${I('retry')}Retry failed</button>`:''}
+ <button data-a="show-in" data-k="${b.dir==='out'?'sent':'received'}">${I('select')}Show in ${b.dir==='out'?'Sent':'Received'}</button></div>`)}
+
+/* ---------- demo panel ---------- */
+function renderDemo(){const d=$('#demo');if(!S.demoOpen){d.innerHTML='';return}const conn=!!S.session;
+ d.innerHTML=`<div class="demo" role="dialog" aria-label="Demo controls"><p>Prototype · dummy data · nothing is sent</p><div class="menu">
+ <button data-a="d-req" ${conn?'disabled':''}>Incoming connect request</button><button data-a="d-batch" ${conn?'':'disabled'}>Incoming batch (24 photos)</button>
+ <button data-a="d-sample" ${conn?'':'disabled'}>Send sample batch</button><button data-a="d-lost" ${conn?'':'disabled'}>${S.session?.state==='lost'?'Connection back':'Connection lost'}</button>
+ <button data-a="d-else" ${conn?'':'disabled'}>Unfinished from another device</button><button data-a="d-nearby">Nearby: ${S.nearbyMode} → next</button>
+ <button data-a="d-big" ${conn?'':'disabled'}>Incoming batch too big for free space</button><button data-a="d-layout">Layout: ${S.layout==='auto'?'sidebar when wide or landscape':'always one column'} → switch</button><button data-a="d-speed">Transfer speed: ${S.slow?'slow (5 s per file)':'fast'} → switch</button><button data-a="d-update">${S.notice?'Hide':'Show'} “update ready”</button><button data-a="d-reset">Reset demo</button></div></div>`}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;const a=el.dataset.a,s=S.session;
+ if(a==='scrim'){if(e.target===el)closeSheet();return}
+ const act={
+ close:()=>closeSheet(),home:()=>{clearInterval(codeTimer);clearTimeout(codeTimer);S.screen='home';S.code=null;render()},'open-session':()=>{S.screen='session';render()},
+ demo:()=>{S.demoOpen=!S.demoOpen;el.setAttribute('aria-expanded',S.demoOpen);renderDemo()},
+ history:()=>historySheet(),settings:()=>settingsSheet(),'set-pin':()=>setPinSheet(),rename:()=>renameSheet(),sugg:()=>{$('#rn').value=el.dataset.n;$('#rn').focus()},'sugg-more':()=>{$('#sugg').innerHTML=suggHTML()},
+ sw:()=>{const k=el.dataset.k;S.settings[k]=!S.settings[k];el.setAttribute('aria-checked',S.settings[k]);render()},
+ theme:()=>{S.settings.theme=el.dataset.k;applyTheme();el.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===el))},
+ 'clear-all':()=>{confirmSheet('Clear all data?','Every session, file and setting on this device goes. Downloaded ZIPs keep their copies.','Clear all',()=>{S.store={};S.me.pin=null;toast('All data cleared.');render()})},
+ 'nearby-on':()=>{S.settings.nearby=true;render()},
+ connect:()=>connectTo(S.nearby.find(d=>d.id===el.dataset.id)),
+ 'cancel-req':()=>{clearTimeout(S.pending?.t);S.pending=null;render()},
+ code:()=>{closeSheet();if(s&&s.state==='connected')return;S.screen='code';S.code={mode:'menu'};clearInterval(codeTimer);clearTimeout(codeTimer);render()},
+ 'show-offer':()=>startCode('offer'),scan:()=>startCode('scan',el.dataset.k),
+ paste:()=>{toast('Pasted a code from the clipboard.');el.dataset.k==='reply'?codeConnect():startCode('reply')},
+ 'copy-code':()=>{navigator.clipboard?.writeText('ETHER-DEMO-CODE').catch(()=>{});el.innerHTML=I('check')+' Copied';setTimeout(()=>{el.innerHTML=I('copy')+' Copy code'},2000)},
+ 'hist-open':()=>{const n=el.dataset.n;closeSheet();const d=S.nearby.find(x=>x.name===n);if(s){toast('Disconnect first to switch devices.');return}
+  if(d&&S.settings.nearby&&S.nearbyMode==='devices'){S.screen='home';connectTo(d)}else sheet(`<h3>${esc(n)} isn’t nearby</h3><p class="muted">Open Ether on it on the same Wi‑Fi and it shows up on Home, or pair with a code. Its session is restored once you connect.</p><div class="acts"><button class="button" data-a="close">OK</button><button class="button button-primary" data-a="code">${I('qr')} Pair with a code</button></div>`)},
+ 'hist-del':()=>{const n=el.dataset.n;confirmSheet(`Clear session with ${esc(n)}?`,'Its history and unfinished files on this device go. Downloaded ZIPs keep their copies.','Clear',()=>{delete S.store[n];toast(`Cleared ${n}.`);historySheet()})},
+ tab:()=>{s.tab=el.dataset.k;render()},check:()=>toast(`Both screens must show ${s.check}. If not, disconnect.`),
+ 'session-menu':()=>sessionMenu(),'row-menu':()=>rowMenu(el.dataset.id),disconnect:()=>{closeSheet();disconnect()},
+ clear:()=>{const k=el.dataset.k;const run=s.batches.filter(b=>!b.finished).length;const fl=k==='all'?[...s.files.in,...s.files.out]:s.files[k];const sz=fmtSize(fl.reduce((a,f)=>a+f.size,0));
+  const nd=s.files.in.filter(f=>f.status==='new').length;
+  if(k==='all')confirmSheet(`Reset ${esc(s.peer.name)}?`,`Clears ${fl.length} files (${sz}) and cancels transfers in progress. ${esc(s.peer.name)} stays paired; you can send again right away.`,'Reset',()=>{stopAll(true);s.files={in:[],out:[]};s.unfinished=[];s.batches=[];render();toast(`Cleared ${fl.length} files.`)});
+  else confirmSheet(`Clear ${fl.length} ${k==='in'?'received':'sent'} files (${sz})?`,`${k==='in'&&nd?`${nd} haven’t been downloaded yet. `:''}Downloaded ZIPs keep their copies.`,'Clear',x=>{if(x)stopAll(true);s.files[k]=s.files[k].filter(f=>!x&&(f.status==='sending'||f.status==='receiving'));render();toast(`Cleared ${fl.length} files.`)},{extra:run?`<label class="checks"><label><input type="checkbox">Also cancel and clear the ${run} transfers in progress</label></label>`:''})},
+ pick:()=>{const k=el.dataset.k;$('#pk-'+k).click()},'more-send':()=>{s.batches.forEach(b=>b.cleared=b.finished||b.cleared);render()},
+ done:()=>{s.batches.forEach(b=>{if(b.finished)b.cleared=true});render()},adv:()=>{const on=!s.batches.some(b=>b.adv);s.batches.forEach(b=>b.adv=on);paintLive()},
+ stop:()=>confirmSheet(s.batches.some(b=>!b.finished&&b.dir==='in')?'Stop receiving?':'Stop sending?','Finished files stay. Files still moving stop here and on '+esc(s.peer.name)+', and what arrived of them is deleted.','Stop',()=>{stopAll();toast('Stopped.')}),
+ 'batch-menu':()=>batchMenu(s.batches.find(b=>b.id===+el.dataset.b)),
+ 'stop-one':()=>{const b=s.batches.find(x=>x.id===+el.dataset.b);closeSheet();confirmSheet('Stop this batch?','Finished files stay; the rest stop on both devices.','Stop',()=>{b.files.forEach(f=>{if(!['done','skipped'].includes(f.status)){f.status='stopped';s.files[b.dir]=s.files[b.dir].filter(r=>r!==f.rec)}});b.finished=true;b.end=Date.now();render()})},
+ retry:()=>{const b=s.batches.find(x=>x.id===+el.dataset.b);closeSheet();startBatch('out',b.files.filter(f=>f.status==='stopped').map(f=>({name:f.name,size:f.size})),{title:'Retrying failed files'})},
+ 'show-in':()=>{closeSheet();s.tab=el.dataset.k;render()},
+ repick:()=>{const f=s.unfinished.find(x=>x.id===el.dataset.id);s.unfinished=s.unfinished.filter(x=>x!==f);startBatch('out',[{name:f.name,size:f.size,progress:f.progress}],{title:'Resuming 1 file'})},
+ 'else-no':()=>{s.elsewhere=null;render()},'else-yes':()=>{const e2=s.elsewhere;s.elsewhere=null;startBatch('out',e2.files);toast(`${e2.files.length} sent, 0 to pick again.`)},
+ selecting:()=>{const v=s.v[s.tab==='received'?'in':'out'];v.selecting=!v.selecting;v.sel.clear();v.ranging=false;renderList()},
+ view:()=>viewSheet(s.tab==='received'?'in':'out'),
+ vset:()=>{const v=s.v[s.tab==='received'?'in':'out'];v[el.dataset.p]=el.dataset.k;el.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===el));renderList()},
+ 'clear-f':()=>{const v=s.v[s.tab==='received'?'in':'out'];v.ft.clear();v.fs.clear();document.querySelectorAll('#layer [data-a=ft]').forEach(c=>c.checked=false);renderList()},
+ 'clear-q':()=>{const v=s.v[s.tab==='received'?'in':'out'];v.q='';render();$('#q').focus()},
+ item:()=>{const dir=s.tab==='received'?'in':'out',v=s.v[dir],fid=el.dataset.id;if(!v.selecting)return detailsSheet(fid);
+  const order=visible(dir).map(f=>f.id);
+  if((v.ranging||e.shiftKey)&&v.range){const a2=order.indexOf(v.range.id),b2=order.indexOf(fid);const[lo,hi]=a2<b2?[a2,b2]:[b2,a2];order.slice(lo,hi+1).forEach(x=>v.range.on?v.sel.add(x):v.sel.delete(x));v.range=null;v.ranging=false}
+  else{v.sel.has(fid)?v.sel.delete(fid):v.sel.add(fid);v.range={id:fid,on:v.sel.has(fid)}}renderList()},
+ 'sel-group':()=>{const dir=s.tab==='received'?'in':'out',v=s.v[dir];const g=groups(dir).find(x=>x.label===el.dataset.g);const all=g.items.every(f=>v.sel.has(f.id));g.items.forEach(f=>all?v.sel.delete(f.id):v.sel.add(f.id));renderList()},
+ 'sel-all':()=>{const dir=s.tab==='received'?'in':'out',v=s.v[dir];const vis=visible(dir);const all=vis.every(f=>v.sel.has(f.id));vis.forEach(f=>all?v.sel.delete(f.id):v.sel.add(f.id));renderList()},
+ range:()=>{const v=s.v[s.tab==='received'?'in':'out'];v.ranging=!v.ranging;v.range=null;if(v.ranging)toast('Tap the first and the last item.');renderList()},
+ zip:()=>{const v=s.v.in;const ok=s.files.in.filter(f=>v.sel.has(f.id)&&f.status!=='damaged');ok.forEach(f=>f.status='downloaded');const n=ok.length;v.sel.clear();v.selecting=false;render();
+  const d=new Date();toast(`Downloaded ${s.peer.name}-${d.toISOString().slice(0,10)} ${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}.zip · ${n} files (simulated)`)},
+ 'del-sel':()=>{const v=s.v.in;const fl=s.files.in.filter(f=>v.sel.has(f.id));confirmSheet(`Delete ${fl.length} received files (${fmtSize(fl.reduce((a,f)=>a+f.size,0))}) from the app?`,'Downloaded ZIPs keep their copies.','Delete',()=>{s.files.in=s.files.in.filter(f=>!v.sel.has(f.id));v.sel.clear();render()})},
+ 'zip-one':()=>{const[f]=findFile(el.dataset.id);closeSheet();f.status='downloaded';render();toast(`Downloaded ${f.name} as a ZIP (simulated).`)},
+ 'del-one':()=>{const[f,dir]=findFile(el.dataset.id);closeSheet();confirmSheet(`Delete ${esc(f.name)}?`,'Downloaded ZIPs keep their copies.','Delete',()=>{s.files[dir]=s.files[dir].filter(x=>x!==f);render()})},
+ details:()=>{closeSheet();detailsSheet(el.dataset.id)},again:()=>{const[f]=findFile(el.dataset.id);closeSheet();startBatch('out',[{name:f.name,size:f.size,skip:f.status==='sent'}])},
+ sha:()=>{const box=$('#sha');box.innerHTML='<div class="progress-bar"><i class="progress-fill" style="width:0%"></i></div><button class="button button-quiet" data-a="sha-x">Cancel</button>';let p=0;const t=setInterval(()=>{p+=12;const i=box.querySelector('.progress-bar i');if(!i){clearInterval(t);return}i.style.width=p+'%';
+  if(p>=100){clearInterval(t);const hx=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,'0')).join('');box.innerHTML=`<div class="hash">${hx}</div><div class="row" style="justify-content:flex-start;margin-top:6px"><button class="button button-quiet" data-a="sha-copy" data-h="${hx}">${I('copy')} Copy</button><span class="small faint">Compare with Get-FileHash (Windows) or shasum -a 256 (Mac).</span></div>`}},90);box.dataset.t=t},
+ 'sha-x':()=>{clearInterval(+$('#sha').dataset.t);$('#sha').innerHTML='<button class="button" data-a="sha">Compute</button>'},
+ 'sha-copy':()=>{navigator.clipboard?.writeText(el.dataset.h).then(()=>toast('Copied.')).catch(()=>toast('Copy isn’t allowed here.'))},
+ reconnect:()=>{el.disabled=true;el.innerHTML='<span class="spinner"></span> Waiting…';setTimeout(()=>{s.state='connected';render();toast(`Reconnected to ${s.peer.name}. Transfers resume.`)},1800)},
+ update:()=>{S.notice=null;renderNotices();toast('Updated (simulated).')},
+ 'd-req':()=>{const d=S.nearby[1];if(S.me.pin){toast(`${d.name} entered your PIN and connected.`);connected(d.name,d.type);return}
+  sheet(`<span class="av" style="margin-bottom:10px">${I(d.type)}</span><h3>${esc(d.name)} wants to connect</h3><p class="small muted">${esc(d.platform)} nearby</p><p class="muted">Accept only if you know this device. Both screens then show the same check code.</p>
+  <div class="acts"><button class="button" data-a="close">Decline</button><button class="button button-primary" data-a="d-accept" autofocus>Accept</button></div>`)},
+ 'd-accept':()=>{closeSheet();const d=S.nearby[1];connected(d.name,d.type)},
+ 'd-batch':()=>{const n=24;if(!S.settings.ask){toast(`${s.peer.name} is sending you ${n} items.`);act['d-batch-ok']();return}sheet(`<span class="av" style="margin-bottom:10px">${I(s.peer.type)}</span><h3>${esc(s.peer.name)} wants to send you ${n} items</h3><p class="muted">186 MB · Free: 21 GB</p>
+  <div class="acts"><button class="button" data-a="close">Decline</button><button class="button button-primary" data-a="d-batch-ok" autofocus>Accept</button></div>`)},
+ 'd-batch-ok':()=>{closeSheet();startBatch('in',Array.from({length:24},(_,i)=>({name:`PXL_202611${26}_${String(140501+i*37)}.jpg`,size:(5+i%4*1.7)*MB})))},
+ 'd-sample':()=>startBatch('out',sampleFiles()),
+ 'd-lost':()=>{s.state=s.state==='lost'?'connected':'lost';render()},
+ 'd-else':()=>{s.elsewhere={from:'Noble Orion',n:2,bytes:64*MB,files:[{name:'IMG_0050.HEIC',size:2.2*MB},{name:'VID_0051.MOV',size:61.8*MB}]};s.tab='transfer';render()},
+ 'd-nearby':()=>{const m=['devices','empty','offline'];S.nearbyMode=m[(m.indexOf(S.nearbyMode)+1)%3];if(!s){S.screen='home';S.pending=null}render()},
+ 'd-layout':()=>{S.layout=S.layout==='auto'?'column':'auto';render()},'d-big':()=>{sheet(`<span class="av">${I(s.peer.type)}</span><h3>${esc(s.peer.name)} wants to send you 1,240 items</h3><p class="muted">38.2 GB · Free: 21 GB. Not everything fits.</p><div class="acts"><button class="button" data-a="close">Decline</button><button class="button" data-a="d-big-ok" data-k="fit">Accept what fits (690)</button><button class="button button-primary" data-a="d-big-ok" data-k="all">Accept all</button></div>`)},'d-big-ok':()=>{const k=el.dataset.k;closeSheet();toast(k==='fit'?'Receiving the 690 items that fit. The rest are skipped.':'Receiving all 1,240 items. Free up space before it runs out.');startBatch('in',Array.from({length:12},(_,i)=>({name:`DSC_0${4100+i}.JPG`,size:(6+i%3)*MB})))},'d-speed':()=>{S.slow=!S.slow;renderDemo()},'d-update':()=>{S.notice=S.notice?null:'update';renderNotices();renderDemo()},
+ 'd-reset':()=>location.reload()};
+ if(a.startsWith('d-')&&!['d-nearby','d-update','d-speed','d-layout','d-big-ok'].includes(a)){S.demoOpen=false;$('[data-a=demo]').setAttribute('aria-expanded','false');renderDemo()}
+ act[a]?.()});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.a==='ft'){const v=S.session.v[S.session.tab==='received'?'in':'out'];const set=v[t.dataset.set];t.checked?set.add(t.dataset.k):set.delete(t.dataset.k);renderList()}
+ if(t.type==='file'&&t.files.length&&S.session){startBatch('out',[...t.files].map(f=>({name:f.webkitRelativePath||f.name,size:f.size||1024})));t.value=''}});
+let qT;document.addEventListener('input',e=>{if(e.target.classList.contains('pin-inp')){e.target.value=e.target.value.replace(/\D/g,'');return}if(e.target.id!=='q')return;clearTimeout(qT);qT=setTimeout(()=>{const s=S.session;s.v[s.tab==='received'?'in':'out'].q=e.target.value;$('#listwrap').innerHTML=listHTML(s.tab==='received'?'in':'out')},150)});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('#layer').innerHTML){closeSheet();return}const s=S.session;if(s&&s.tab!=='transfer'){const v=s.v[s.tab==='received'?'in':'out'];if(v.sel.size){v.sel.clear();renderList()}else if(v.selecting){v.selecting=false;renderList()}}});
+applyTheme();render();
+}
+</script>
+</body>
+</html>

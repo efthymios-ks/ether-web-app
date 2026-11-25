@@ -1,0 +1,31 @@
+node_modules/
+
+# Built site, produced by scripts/build.mjs
+dist/
+
+# Browser profile, used by Start-Debug.ps1
+.debug-profile/
+
+# Self-signed certificate for LAN debugging, produced by Start-Debug.ps1 -Lan
+.certificates/
+
+# Test results, when Invoke-Test.ps1 is asked for them
+testResults.xml
+
+# Playwright MCP captures
+.playwright-mcp/
+
+*.log
+
+# Dev tunnel ID and host log, used by Start-Debug.ps1 -Tunnel
+.devtunnel/
+
+# Build output in progress, swapped into dist by scripts/build.mjs
+dist.staging-*/
+dist.lock
+
+# Output sent to "nul" from Git Bash becomes a real file on Windows
+/nul
+
+# Wrangler's local state and build output for the relay Worker
+relay/.wrangler/

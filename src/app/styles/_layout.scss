@@ -1,0 +1,55 @@
+// The three layouts of §13, shared by every partial: `@use 'layout';` then `@include layout.portrait-phone { … }`.
+// They follow the available size, never the device type.
+
+@mixin portrait-phone {
+    @media (max-width: 599px) {
+        @content;
+    }
+}
+
+@mixin landscape-phone {
+    @media (max-height: 499px) and (orientation: landscape) {
+        @content;
+    }
+}
+
+@mixin desktop {
+    @media (min-width: 900px) and (min-height: 500px) {
+        @content;
+    }
+}
+
+// UI plan §4.9: wide screens and landscape phones from 600 px wide put Home's sidebar beside the pane while not
+// connected; portrait screens under 900 px and anything under 600 px stay one column. SPLIT_MEDIA in shell/layout.ts.
+@mixin split {
+    @media (min-width: 900px), (orientation: landscape) and (min-width: 600px) {
+        @content;
+    }
+}
+
+// Text for screen readers only: kept in the accessibility tree, taking no space on screen.
+@mixin screen-reader-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+// The look of every tooltip, the icon buttons' [data-tooltip].
+@mixin tooltip-bubble {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--bg);
+    background: var(--text);
+    border-radius: var(--radius-small);
+}
+
+@mixin reduced-motion {
+    @media (prefers-reduced-motion: reduce) {
+        @content;
+    }
+}

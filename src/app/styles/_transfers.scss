@@ -1,0 +1,797 @@
+@use 'layout';
+
+// The session screen (§4.5): the peer bar, the tabs, and the Send tab with its picker tiles and progress view.
+// The peer bar adapts to the width of the session through a container query.
+
+// D8: once connected, the session takes the whole width, up to about 1,600 px, so the files get the room.
+// It fills the pane's height too, so the Total progress card can stick to the bottom.
+.session-screen {
+    container: session / inline-size;
+    flex: 1 0 auto;
+    gap: 12px;
+    min-block-size: 100%;
+    max-inline-size: 1600px;
+}
+
+// The peer bar: one compact row on every layout, avatar, name and state, the chip or the actions, then ⋯.
+.peer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px var(--shadow);
+
+    // The link is gone, dropped (lost) or closed by the other device (ended): red, so it can't be missed.
+    // The text keeps its own colour for contrast; the border, its thick start edge and the avatar carry the red.
+    &[data-link="lost"],
+    &[data-link="ended"] {
+        background: var(--fail-soft);
+        border-color: var(--fail);
+        border-inline-start-width: 4px;
+    }
+
+    .session-menu {
+        color: var(--muted);
+    }
+}
+
+.peer-avatar {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 42px;
+    block-size: 42px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 50%;
+
+    .icon {
+        inline-size: 22px;
+        block-size: 22px;
+    }
+}
+
+.peer-bar[data-link="offline"] .peer-avatar {
+    color: var(--muted);
+    background: var(--surface-sunken);
+}
+
+.peer-bar:is([data-link="lost"], [data-link="ended"]) .peer-avatar {
+    color: var(--text-inverse);
+    background: var(--fail);
+}
+
+.peer-text {
+    display: grid;
+    flex: 1 1 0;
+    min-inline-size: 0;
+}
+
+.peer-name {
+    overflow: hidden;
+    min-inline-size: 0;
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.peer-health,
+.status-sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.health-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// "Not nearby…", or why nearby devices can't be found, wraps, unlike the one-line state above it.
+.status-nearby {
+    white-space: normal;
+}
+
+.health-dot {
+    flex: none;
+    inline-size: 8px;
+    block-size: 8px;
+    background: var(--ok);
+    border-radius: 50%;
+}
+
+.peer-health[data-health="weak"] .health-dot {
+    background: var(--warn);
+}
+
+.peer-health[data-health="lost"] .health-dot,
+.peer-bar:is([data-link="lost"], [data-link="ended"]) .status-sub .health-dot {
+    background: var(--fail);
+}
+
+.peer-bar[data-link="offline"] .status-sub .health-dot {
+    display: none;
+}
+
+// Reconnect waiting for the peer to show up nearby or to say yes, under the name; Cancel takes Reconnect's place.
+.status-waiting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+
+    .spinner {
+        inline-size: 16px;
+        block-size: 16px;
+    }
+}
+
+.status-side {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+// Why Reconnect didn't pair, e.g. "Pixel 8 declined.", across the whole bar.
+.status-note {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+// SP-02: "Check BXWU", small but always on screen while connected; a tap shows what it is for.
+.check-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    min-block-size: 32px;
+    padding: 0 10px;
+    font: inherit;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+}
+
+// Touch screens: a 44 px target with the same 32 px pill drawn inside it.
+@media (pointer: coarse) {
+    .check-chip {
+        position: relative;
+        isolation: isolate;
+        min-block-size: 44px;
+        background: transparent;
+        border-color: transparent;
+
+        &::before {
+            position: absolute;
+            inset: 6px 0;
+            z-index: -1;
+            background: var(--surface-sunken);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            content: "";
+        }
+    }
+}
+
+.check-code-value {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text);
+}
+
+// Narrow phones keep the code and drop the word, and the avatar alone says what kind of device the peer is;
+// tighter spacing leaves the name the room.
+@media (max-width: 420px) {
+    .check-chip-label,
+    .peer-platform {
+        display: none;
+    }
+
+    .peer-bar {
+        gap: 8px;
+        padding: 8px 8px 8px 10px;
+    }
+
+    .peer-bar .peer-avatar {
+        inline-size: 34px;
+        block-size: 34px;
+    }
+
+    .check-chip {
+        padding: 0 8px;
+    }
+}
+
+// A narrow bar gives Reconnect and Use a code a row of their own under the name, and ⋯ stays on the first row.
+@container session (max-width: 559px) {
+    .peer-bar:not([data-link="connected"]) .status-side {
+        flex-basis: 100%;
+        order: 1;
+        padding-inline-start: 54px;
+    }
+}
+
+@media (max-width: 420px) {
+    .peer-bar:not([data-link="connected"]) .status-side {
+        padding-inline-start: 42px;
+    }
+}
+
+// Send · Received 13 · Sent 10: equal tabs across the whole width.
+.tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-block-end: 1px solid var(--border);
+    scrollbar-width: none;
+}
+
+.tab {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 44px;
+    padding: 8px 14px;
+    font: inherit;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-block-end: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.12s ease, border-color 0.12s ease;
+
+    &:hover {
+        color: var(--text);
+    }
+
+    &[aria-selected="true"] {
+        color: var(--text);
+        border-block-end-color: var(--accent);
+    }
+
+    @include layout.portrait-phone {
+        padding: 8px 6px;
+        font-size: 0.9375rem;
+    }
+}
+
+.tab-count {
+    margin-inline-start: 4px;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--faint);
+
+    &:empty {
+        display: none;
+    }
+}
+
+// A static dot, not an animation: files of this session are moving.
+.tab-dot {
+    flex: none;
+    inline-size: 8px;
+    block-size: 8px;
+    margin-inline-end: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+}
+
+.tab-panels {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+
+    > [role="tabpanel"] {
+        flex: 1 1 auto;
+    }
+}
+
+// The Send tab: a column, so the Total progress card sits at the bottom of a short view.
+.send-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.send-idle {
+    display: grid;
+    gap: 14px;
+    margin-block-start: 4px;
+}
+
+.picker-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    inline-size: 100%;
+    max-inline-size: 720px;
+    margin-inline: auto;
+}
+
+.picker-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-block-size: 112px;
+    padding: 12px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px var(--shadow);
+    cursor: pointer;
+    transition: border-color 0.12s ease;
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    &[aria-disabled="true"] {
+        cursor: default;
+        opacity: 0.55;
+    }
+}
+
+@media (hover: hover) {
+    .picker-tile:hover:not([aria-disabled="true"]) {
+        border-color: var(--accent);
+    }
+}
+
+.picker-tile-icon {
+    color: var(--accent);
+
+    .icon {
+        inline-size: 28px;
+        block-size: 28px;
+    }
+}
+
+.send-hint {
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--faint);
+}
+
+// Unfinished files of other devices, at the top of the Send tab.
+.prompt-card {
+    display: grid;
+    gap: 8px;
+    padding: 12px 14px;
+    font-size: 0.9375rem;
+    background: var(--info-soft);
+    border-radius: var(--radius);
+}
+
+.prompt-note {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.unfinished-elsewhere-list {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding-inline-start: 20px;
+    font-size: 0.875rem;
+}
+
+.prompt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.batch-list {
+    display: grid;
+    gap: 6px;
+
+    &:empty {
+        display: none;
+    }
+}
+
+// A batch: its header line, then its files. The header is never the browser's scroll anchor, so the page
+// doesn't move under the reader while its count changes.
+.batch-card,
+.progress-section {
+    display: grid;
+    gap: 2px;
+}
+
+.batch-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-block-size: 44px;
+    margin-block-start: 8px;
+    padding-inline: 2px;
+    font-size: 0.875rem;
+    color: var(--muted);
+    overflow-anchor: none;
+}
+
+.batch-title {
+    overflow: hidden;
+    min-inline-size: 0;
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.batch-count {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.batch-menu {
+    margin-inline-start: auto;
+    color: var(--muted);
+}
+
+.progress-lines,
+.batch-files {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// One file of the progress view: the whole line is one button; Needs picking again adds Pick at the end.
+.progress-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    block-size: 56px;
+    overflow: hidden;
+}
+
+.line-open {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 12px;
+    min-inline-size: 0;
+    block-size: 100%;
+    padding: 0 4px 0 2px;
+    font: inherit;
+    text-align: start;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+    }
+
+    &:active {
+        background: var(--surface-raised);
+    }
+
+    .file-thumb {
+        display: grid;
+        flex: none;
+        place-items: center;
+        inline-size: 40px;
+        block-size: 40px;
+        overflow: hidden;
+        color: var(--muted);
+        background: var(--surface-sunken);
+        border-radius: var(--radius-small);
+
+        .icon {
+            inline-size: 22px;
+            block-size: 22px;
+        }
+    }
+
+    .file-thumb-image {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+}
+
+@media (hover: hover) {
+    .line-open:hover {
+        background: var(--surface-raised);
+    }
+}
+
+.line-text {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 2px;
+    min-inline-size: 0;
+}
+
+// The name gives way to the size, which always shows.
+.line-title {
+    display: flex;
+    min-inline-size: 0;
+    white-space: nowrap;
+}
+
+.line-name {
+    overflow: hidden;
+    min-inline-size: 0;
+    text-overflow: ellipsis;
+}
+
+.line-size {
+    flex: none;
+    white-space: pre;
+    color: var(--muted);
+}
+
+// The lines sit on the page, not on a card, so the bar's track takes the border colour to stay visible.
+.line-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-inline-size: 0;
+    min-block-size: 20px;
+    font-size: 0.8125rem;
+
+    .progress-bar {
+        flex: 1 1 auto;
+        min-inline-size: 40px;
+        background: var(--border);
+    }
+}
+
+.line-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    min-inline-size: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--faint);
+}
+
+.line-words {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.line-detail {
+    flex: 0 1 auto;
+    overflow: hidden;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Status words in their colours, never colour alone: done ok, moving or checking accent, paused warn,
+// failed or stopped fail, the rest faint.
+.progress-line {
+    &[data-tone="ok"] .line-status {
+        color: var(--ok);
+    }
+
+    &[data-tone="accent"] .line-status {
+        color: var(--accent);
+    }
+
+    &[data-tone="warn"] .line-status {
+        color: var(--warn);
+    }
+
+    &[data-tone="fail"] .line-status {
+        color: var(--fail);
+    }
+}
+
+.line-pick {
+    flex: none;
+    margin-inline-end: 4px;
+}
+
+.spinner-small {
+    display: inline-block;
+    flex: none;
+    inline-size: 12px;
+    block-size: 12px;
+    border: 2px solid var(--border-strong);
+    border-block-start-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+// Total progress (0:13): sticky at the bottom of the view while the files scroll under it, clear of a phone's
+// home indicator.
+.transfer-total {
+    position: sticky;
+    inset-block-end: calc(8px + env(safe-area-inset-bottom));
+    z-index: 1;
+    margin-block-start: auto;
+    padding: 14px 16px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    // The second shadow, in the page colour, covers the gap under the stuck card, so rows scrolling behind it
+    // never show below it. A shadow takes no room, so the page doesn't get longer.
+    box-shadow: 0 -2px 12px var(--shadow), 0 104px 0 16px var(--bg);
+
+    > .progress-bar {
+        block-size: 8px;
+        margin-block-start: 6px;
+    }
+
+    &[data-finished="true"] .progress-fill {
+        background: var(--ok);
+    }
+
+    // Stopped: the bar waits where it stopped, in the colour of a file waiting to resume.
+    &[data-stopped="true"] .progress-fill {
+        background: var(--warn);
+    }
+}
+
+.total-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.total-heading {
+    font-size: 1.0625rem;
+}
+
+.total-clock,
+.total-percent {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+// Room for "100%", so the percent never moves the card's head as it grows.
+.total-percent {
+    min-inline-size: 4ch;
+    text-align: end;
+}
+
+// Under the bar: the three detail lines on the left, the buttons beside them, centred on the right.
+.total-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-block: 8px 6px;
+}
+
+// The counts, bytes and speed, time left: always shown.
+.total-details {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 2px;
+    font-size: 0.875rem;
+    color: var(--muted);
+
+    p {
+        margin: 0;
+    }
+}
+
+.total-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 8px;
+    margin-inline-start: auto;
+}
+
+.total-status {
+    @include layout.screen-reader-only;
+}
+
+.total-done {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+// Portrait phones: words only, so Send more and Done share one row.
+@include layout.portrait-phone {
+    .total-actions .button {
+        padding-inline: 12px;
+    }
+
+    .total-actions .button-icon {
+        display: none;
+    }
+}
+
+// Shared with the Sent and Received rows: the 44 px checkbox of a selectable row and the list reset.
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.file-name {
+    min-inline-size: 0;
+}
+
+.file-check {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    margin-inline-start: -8px;
+    cursor: pointer;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.file-check-box {
+    inline-size: 20px;
+    block-size: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+@include layout.reduced-motion {
+    .spinner-small {
+        animation: none;
+    }
+}
+
+@include layout.desktop {
+    .session-screen {
+        gap: 14px;
+    }
+}

@@ -1,0 +1,208 @@
+@use 'layout';
+
+// Nearby devices on Home (§4.2): the orbit and "Tap a device to connect", one card per device (a whole card is the
+// target), the asked card with Cancel under it, notes under the list, the states that replace the list, and the
+// prompt on the device that is asked. Home's Connected card shares the card's look.
+
+.home-nearby {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+// Nobody found, no internet or the setting off: the line fills the room the list would take.
+.home-nearby:is([data-status="empty"], [data-status="offline"], [data-status="off"], [data-status="paused"]) {
+    flex: 1;
+    justify-content: center;
+}
+
+.nearby-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 2px 0;
+}
+
+.nearby-title {
+    margin: 0;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.nearby-hint {
+    min-inline-size: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.nearby-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.device-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    inline-size: 100%;
+    min-block-size: 68px;
+    padding: 12px 14px;
+    font: inherit;
+    text-align: start;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px var(--shadow);
+    cursor: pointer;
+    transition: border-color 0.12s ease;
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.55;
+    }
+}
+
+@media (hover: hover) {
+    .device-card:hover:not(:disabled) {
+        border-color: var(--accent);
+    }
+}
+
+// The asked card stays clear while the others wait.
+.nearby-item[data-asked="true"] .device-card:disabled {
+    opacity: 1;
+    border-color: var(--accent);
+}
+
+.nearby-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 42px;
+    block-size: 42px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 50%;
+
+    .icon {
+        inline-size: 22px;
+        block-size: 22px;
+    }
+}
+
+.nearby-icon-slot,
+.connected-avatar {
+    display: flex;
+    flex: none;
+}
+
+.device-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    min-inline-size: 0;
+}
+
+.device-name {
+    max-inline-size: 100%;
+    overflow: hidden;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-block-start: 4px;
+}
+
+// A device with a PIN: connecting asks for it.
+.nearby-pin {
+    gap: 4px;
+}
+
+.nearby-pin-icon .icon {
+    display: block;
+    inline-size: 12px;
+    block-size: 12px;
+}
+
+.nearby-wait {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-block-start: 6px;
+    font-size: 0.875rem;
+    color: var(--muted);
+
+    .spinner {
+        inline-size: 16px;
+        block-size: 16px;
+    }
+}
+
+.nearby-item-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: 6px;
+}
+
+.device-chevron {
+    flex: none;
+    color: var(--faint);
+}
+
+.nearby-note {
+    margin: 0;
+}
+
+.nearby-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 8px;
+    text-align: center;
+
+    .button {
+        margin-block-start: 6px;
+    }
+}
+
+.nearby-empty-orbit {
+    margin-block-end: 10px;
+}
+
+// Paused while pairing with a code beside it: one quiet line.
+.home-panel .nearby-empty[data-kind="paused"] .empty-title {
+    font-size: 0.9375rem;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+// The asking device's platform under the title, e.g. "iPad nearby", and Paired before.
+.nearby-prompt-device {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+@include layout.landscape-phone {
+    .nearby-empty {
+        padding-block: 16px;
+    }
+}

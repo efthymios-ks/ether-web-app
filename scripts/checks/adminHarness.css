@@ -1,0 +1,69 @@
+/* A stand-in for the app shell, with the shell's rules for keeping clear of the log viewer (_shell.scss, test 26). */
+
+.harness-app {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100dvh;
+}
+
+:root[data-log-viewer="open"] .harness-app {
+    padding-block-end: var(--log-viewer-block-size, 0px);
+}
+
+@media (min-width: 900px) and (min-height: 500px) {
+    :root[data-log-viewer="open"] .harness-app {
+        padding-inline-end: var(--log-viewer-inline-size, 0px);
+    }
+}
+
+.harness-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-block-end: 1px solid var(--border);
+}
+
+.harness-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.125rem;
+}
+
+.harness-main {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 16px;
+    padding: 16px;
+}
+
+.harness-qr {
+    justify-self: center;
+    inline-size: min(70vw, 260px);
+    aspect-ratio: 1;
+    background:
+        conic-gradient(#000 25%, #fff 0 50%, #000 0 75%, #fff 0) 0 0 / 26px 26px;
+    border: 16px solid #fff;
+    outline: 1px solid var(--border);
+}
+
+.harness-text {
+    color: var(--muted);
+}
+
+@media (max-height: 499px) and (orientation: landscape) {
+    :root[data-log-viewer="open"] .harness-app {
+        padding-block-end: 0;
+    }
+
+    .harness-main {
+        grid-template-columns: auto 1fr;
+    }
+
+    .harness-qr {
+        inline-size: min(60dvh, 260px);
+    }
+}

@@ -1,0 +1,1134 @@
+@use 'layout';
+
+// The Sent and Received tabs (§4.5, §18.3): the toolbar, the "Filtered: …" line, the List rows, the selection
+// bar, the virtualised Tiles grid (GL-01…GL-05), their sheets and the one-item viewer (GL-06).
+// Badges sit on top of photos, so they use fixed light-on-dark colours that read on any picture.
+
+// While a search holds the panel's height (filesPanel.ts), the rows keep their own heights at the top.
+.files-panel {
+    container: files-panel / inline-size;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+}
+
+// Words for screen readers that an icon or a shorter label stands for on screen.
+.files-sr-only {
+    @include layout.screen-reader-only;
+}
+
+// A file's fixed icon (fileIcon.ts) in its category's file-type colour, the same on tiles, rows, progress lines,
+// Details and the viewer; the slot it sits in sets its size. Documents share Word's blue.
+$file-icon-colors: (
+    image: --ft-image,
+    video: --ft-video,
+    audio: --ft-audio,
+    document: --ft-word,
+    archive: --ft-archive,
+    other: --ft-unknown,
+);
+
+.file-icon {
+    display: grid;
+    place-items: center;
+    color: var(--ft-unknown);
+}
+
+@each $category, $token in $file-icon-colors {
+    .file-icon[data-category="#{$category}"] {
+        color: var(#{$token});
+    }
+}
+
+// [Search] [☑ Select] [⚙ View & filter]: the search takes the room the two 44 px icon buttons leave.
+.files-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.files-search {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    min-inline-size: 0;
+}
+
+.files-search-icon {
+    position: absolute;
+    inset-inline-start: 12px;
+    display: inline-flex;
+    color: var(--muted);
+    pointer-events: none;
+
+    .icon {
+        inline-size: 20px;
+        block-size: 20px;
+    }
+}
+
+.files-search-input {
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 44px;
+    padding-block: 0;
+    padding-inline: 40px 44px;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    appearance: none;
+    transition: border-color 0.12s ease;
+
+    &::placeholder {
+        color: var(--muted);
+    }
+
+    // The field has its own ×, which shows only with text.
+    &::-webkit-search-decoration,
+    &::-webkit-search-cancel-button {
+        appearance: none;
+    }
+
+    &:focus-visible {
+        border-color: var(--accent);
+        outline: none;
+    }
+}
+
+.files-search-clear {
+    position: absolute;
+    inset-inline-end: 4px;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    padding: 0;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    .icon {
+        inline-size: 16px;
+        block-size: 16px;
+    }
+
+    @media (hover: hover) {
+        &:hover {
+            color: var(--text);
+            background: var(--surface-raised);
+        }
+    }
+
+    &:focus-visible {
+        outline-offset: -2px;
+    }
+}
+
+// The toolbar's Select and View & filter: bordered 44 px icon buttons; Select is pressed while selecting.
+.files-tool {
+    background: var(--surface);
+    border-color: var(--border-strong);
+
+    &[aria-pressed="true"] {
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-color: var(--accent);
+    }
+
+    .icon {
+        inline-size: 20px;
+        block-size: 20px;
+    }
+}
+
+// A dot on View & filter while filters are on.
+.files-view-dot {
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
+    inline-size: 8px;
+    block-size: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+}
+
+// "Filtered: Photos · Failed  Clear" above the list.
+.files-filtered {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-inline: 2px;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+// Text buttons in the accent colour: the line's Clear and the headers' Select day or month.
+.files-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 32px;
+    padding: 0 8px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+
+    @media (hover: hover) {
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+@media (pointer: coarse) {
+    .files-link {
+        min-block-size: 44px;
+    }
+}
+
+.segmented {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+}
+
+.segment {
+    display: inline-flex;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-block-size: 40px;
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    color: var(--muted);
+    background: var(--surface);
+    border: 0;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    & + & {
+        border-inline-start: 1px solid var(--border-strong);
+    }
+
+    &[aria-pressed="true"] {
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-soft);
+    }
+}
+
+@media (pointer: coarse) {
+    .segment {
+        min-block-size: 44px;
+    }
+}
+
+// A checkbox row of the View & filter sheet, 44 px high.
+.filter-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-block-size: 44px;
+    padding: 0 8px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+
+    @media (hover: hover) {
+        &:hover {
+            background: var(--surface-raised);
+        }
+    }
+
+    input {
+        flex: none;
+        inline-size: 20px;
+        block-size: 20px;
+        margin: 0;
+        accent-color: var(--accent);
+    }
+}
+
+// Nothing to show, and with a search typed, which of the search and the filters to clear.
+.files-empty {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding-block: 40px;
+    overflow-wrap: anywhere;
+}
+
+.files-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+// "N selected · Select all · Range · ZIP (N) · Delete", stuck to the bottom of the view while selecting.
+.selection-bar {
+    position: sticky;
+    inset-block-end: calc(10px + env(safe-area-inset-bottom));
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-block-start: 4px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 -2px 12px var(--shadow);
+
+    [data-action="range"][aria-pressed="true"] {
+        color: var(--accent);
+        border-color: var(--accent);
+    }
+}
+
+.selection-count {
+    flex: 1 1 auto;
+    padding-inline: 8px;
+    font-weight: 600;
+}
+
+.selection-delete {
+    color: var(--fail);
+
+    .icon {
+        inline-size: 20px;
+        block-size: 20px;
+    }
+}
+
+// Day and month headers of both views: "Today 12", and Select day or month while selecting. The block size
+// is DAY_HEADER_HEIGHT in galleryLayout.ts.
+.gallery-day {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-inline: 2px;
+}
+
+.gallery-day-title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.gallery-day-count {
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--faint);
+}
+
+// The List: each group's rows as one card with hairline dividers. The block size is LIST_ROW_HEIGHT in
+// galleryRow.ts; the whole row is one 44 px+ target plus its ⋯ button.
+.gallery-list {
+    gap: 0;
+}
+
+.gallery-list .file-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    block-size: 56px;
+    padding: 0 4px 0 0;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-block-start-color: var(--divider);
+    border-block-end-width: 0;
+    border-radius: 0;
+
+    &[data-edge="first"],
+    &[data-edge="only"] {
+        border-block-start-color: var(--border);
+        border-start-start-radius: var(--radius);
+        border-start-end-radius: var(--radius);
+    }
+
+    &[data-edge="last"],
+    &[data-edge="only"] {
+        border-block-end-width: 1px;
+        border-end-start-radius: var(--radius);
+        border-end-end-radius: var(--radius);
+        box-shadow: 0 1px 2px var(--shadow);
+    }
+
+    &[data-selecting="true"] .file-check {
+        margin-inline-start: 0;
+    }
+
+    &:has(.file-check-box:checked) {
+        background: var(--accent-soft);
+    }
+
+    .file-open {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        gap: 12px;
+        min-inline-size: 0;
+        block-size: 100%;
+        padding: 0 4px 0 12px;
+        font: inherit;
+        text-align: start;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+        }
+
+        &:active {
+            background: var(--surface-raised);
+        }
+    }
+
+    &[data-selecting="true"] .file-open {
+        padding-inline-start: 0;
+    }
+
+    .file-thumb {
+        display: grid;
+        flex: none;
+        place-items: center;
+        inline-size: 40px;
+        block-size: 40px;
+        overflow: hidden;
+        color: var(--muted);
+        background: var(--surface-sunken);
+        border-radius: var(--radius-small);
+
+        .icon {
+            inline-size: 22px;
+            block-size: 22px;
+        }
+    }
+
+    .file-thumb-image {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+
+    .file-lines {
+        display: grid;
+        gap: 2px;
+        min-inline-size: 0;
+    }
+
+    .file-name {
+        overflow: hidden;
+        font-size: 0.9375rem;
+        font-weight: 400;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .file-meta-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-inline-size: 0;
+        font-size: 0.8125rem;
+        color: var(--muted);
+    }
+
+    .file-meta {
+        overflow: hidden;
+        font-size: inherit;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // A moving file: status, its own bar, then the percent, all on the second line.
+    .progress-bar {
+        flex: 1 1 auto;
+        min-inline-size: 40px;
+        order: 1;
+    }
+
+    &[data-moving="true"] .file-meta {
+        flex: none;
+        order: 2;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &[data-moving="true"] .file-list-status {
+        order: 0;
+    }
+
+    .file-more {
+        color: var(--muted);
+    }
+}
+
+// The status of an exception as coloured words after the meta, " · Failed"; Downloaded leads with a ✓.
+.file-list-status {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+
+    &::before {
+        content: "·";
+        margin-inline-end: 3px;
+        color: var(--muted);
+    }
+
+    &[data-tone="accent"] {
+        color: var(--accent);
+    }
+
+    &[data-tone="ok"] {
+        color: var(--ok);
+    }
+
+    &[data-tone="warn"] {
+        color: var(--warn);
+    }
+
+    &[data-tone="fail"] {
+        color: var(--fail);
+    }
+}
+
+.file-row[data-moving="true"] .file-list-status::before {
+    content: none;
+}
+
+.file-list-done .icon {
+    inline-size: 14px;
+    block-size: 14px;
+}
+
+.gallery-row {
+    display: grid;
+    grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+    gap: 4px;
+    padding-block-end: 4px;
+}
+
+// Every tile has the raised surface and border of the theme, so a document or a file still moving (no
+// thumbnail yet) shows its icon, and its ring, on a tile rather than on the page.
+.gallery-cell {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1;
+    padding: 0;
+    font: inherit;
+    color: var(--muted);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: -3px;
+    }
+
+    &[aria-selected="true"] {
+        outline: 3px solid var(--accent);
+        outline-offset: -3px;
+    }
+}
+
+// A file without a thumbnail shows its category's icon large and centred; while it moves, the icon shrinks to
+// fit inside its ring.
+.gallery-placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+
+    .file-icon {
+        inline-size: 40%;
+        max-inline-size: 64px;
+        aspect-ratio: 1;
+    }
+
+    .icon {
+        inline-size: 100%;
+        block-size: 100%;
+    }
+}
+
+.gallery-cell[data-moving="true"] .gallery-placeholder .file-icon {
+    inline-size: 26px;
+}
+
+.gallery-thumb {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+
+    &:not([src]) {
+        display: none;
+    }
+}
+
+// The bottom row of a tile, clear of the selection check in the top corner: the status tag at the start and a
+// video's length at the end. The tag gives way first, ending in an ellipsis.
+.gallery-badges {
+    position: absolute;
+    inset-inline: 4px;
+    inset-block-end: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+
+.gallery-duration {
+    flex: none;
+    margin-inline-start: auto;
+    padding: 1px 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: rgb(0 0 0 / 60%);
+    border-radius: 4px;
+}
+
+// A tile's status in the List's words and colours; the plain end of a transfer has none. The pill is nearly
+// opaque with a soft shadow, so it reads over a photo as well as over the file icon.
+.gallery-tag {
+    overflow: hidden;
+    min-inline-size: 0;
+    padding: 1px 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--surface-sunken) 92%, transparent);
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+
+    &[data-tone="accent"] {
+        color: var(--accent);
+        background: color-mix(in srgb, var(--accent-soft) 92%, transparent);
+    }
+
+    &[data-tone="ok"] {
+        color: var(--ok);
+        background: color-mix(in srgb, var(--ok-soft) 92%, transparent);
+    }
+
+    &[data-tone="warn"] {
+        color: var(--warn);
+        background: color-mix(in srgb, var(--warn-soft) 92%, transparent);
+    }
+
+    &[data-tone="fail"] {
+        color: var(--fail);
+        background: color-mix(in srgb, var(--fail-soft) 92%, transparent);
+    }
+}
+
+.progress-ring {
+    position: absolute;
+    inset: 0;
+    inline-size: 44px;
+    block-size: 44px;
+    margin: auto;
+    transform: rotate(-90deg);
+
+    circle {
+        fill: none;
+        stroke-width: 4;
+    }
+}
+
+.progress-ring-track {
+    stroke: rgb(255 255 255 / 55%);
+}
+
+.progress-ring-value {
+    stroke: var(--accent);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.15s ease;
+}
+
+.gallery-check {
+    display: none;
+}
+
+.files-panel[data-selecting="true"] .gallery-check {
+    position: absolute;
+    inset-block-start: 5px;
+    inset-inline-start: 5px;
+    display: block;
+    inline-size: 22px;
+    block-size: 22px;
+    background: rgb(0 0 0 / 25%);
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+}
+
+.gallery-cell[aria-selected="true"] .gallery-check {
+    background: var(--accent);
+    border-color: var(--accent);
+
+    &::after {
+        position: absolute;
+        inset-block-start: 3px;
+        inset-inline-start: 6px;
+        inline-size: 5px;
+        block-size: 10px;
+        border: solid var(--accent-text);
+        border-width: 0 2px 2px 0;
+        content: "";
+        transform: rotate(45deg);
+    }
+}
+
+// Downloaded: a small ✓ in the top corner, clear of the selection check.
+.gallery-done {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline-end: 6px;
+    display: grid;
+    place-items: center;
+    inline-size: 20px;
+    block-size: 20px;
+    color: var(--text-inverse);
+    background: var(--ok);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+
+    .icon {
+        inline-size: 12px;
+        block-size: 12px;
+        stroke-width: 3;
+    }
+}
+
+// The sheets (filesSheet.ts): a heading with its ×, then the content.
+.files-sheet {
+    display: grid;
+    gap: 12px;
+    min-inline-size: 0;
+}
+
+.files-sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.files-sheet-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.125rem;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.files-sheet-close {
+    margin-inline-end: -8px;
+    color: var(--muted);
+}
+
+.files-sheet-field {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+// Group by and Show as span the sheet, each choice an equal part of it.
+.files-sheet-field > .segmented {
+    display: flex;
+    justify-self: stretch;
+
+    .segment {
+        flex: 1 1 0;
+    }
+}
+
+.files-sheet-label {
+    padding: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.files-sheet-checks {
+    justify-items: stretch;
+    gap: 2px;
+
+    .filter-option {
+        margin-inline: -8px;
+    }
+}
+
+.files-sheet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-block-start: 4px;
+
+    .button {
+        flex: 1 1 130px;
+    }
+}
+
+// A row's ⋯: its note, e.g. a damaged copy, then the actions as a menu.
+.files-note {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    background: var(--info-soft);
+    border-radius: var(--radius);
+
+    &[data-tone="fail"] {
+        color: var(--fail);
+        background: var(--fail-soft);
+    }
+}
+
+// Details: the preview, the facts and the SHA-256, then the actions. The preview is the thumbnail or the file's
+// category icon; a playable video or song adds a round Play button in the middle, and plays in place.
+.files-details-preview {
+    position: relative;
+    display: grid;
+    place-items: center;
+    block-size: 190px;
+    overflow: hidden;
+    padding: 0;
+    font: inherit;
+    color: var(--muted);
+    background: var(--surface-sunken);
+    border: 0;
+    border-radius: var(--radius);
+
+    &[data-state="playing"][data-category="audio"],
+    &[data-state="message"] {
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 16px;
+    }
+}
+
+button.files-details-preview,
+.files-details-view {
+    cursor: zoom-in;
+
+    &:focus-visible {
+        outline-offset: -2px;
+    }
+}
+
+.files-details-face,
+.files-details-view {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
+}
+
+.files-details-view {
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+}
+
+.files-details-icon .icon {
+    inline-size: 48px;
+    block-size: 48px;
+}
+
+.files-details-thumb {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+}
+
+// Fixed light-on-dark, like the tiles' badges, so it reads over any poster.
+.files-details-play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    inline-size: 56px;
+    block-size: 56px;
+    margin: auto;
+    padding: 0 0 0 4px;
+    color: #ffffff;
+    background: rgb(0 0 0 / 60%);
+    border: 2px solid rgb(255 255 255 / 85%);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        cursor: progress;
+        opacity: 0.7;
+    }
+
+    .icon {
+        inline-size: 26px;
+        block-size: 26px;
+    }
+}
+
+// A song has no picture to cover: its icon sits above the Play button.
+.files-details-preview[data-category="audio"] {
+    .files-details-face {
+        padding-block-end: 64px;
+    }
+
+    .files-details-play {
+        inset-block: auto 16px;
+    }
+}
+
+.files-details-video {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    background: #000000;
+}
+
+.files-details-audio {
+    inline-size: 100%;
+}
+
+.files-details-message {
+    margin: 0;
+    text-align: center;
+}
+
+.files-details .file-details {
+    gap: 6px 16px;
+    font-size: 0.9375rem;
+}
+
+.files-details-status {
+    &[data-tone="accent"] {
+        color: var(--accent);
+    }
+
+    &[data-tone="ok"] {
+        color: var(--ok);
+    }
+
+    &[data-tone="warn"] {
+        color: var(--warn);
+    }
+
+    &[data-tone="fail"] {
+        color: var(--fail);
+    }
+}
+
+.files-details-damaged {
+    color: var(--fail);
+}
+
+.files-details .sha256-value {
+    padding: 8px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-small);
+}
+
+.files-map-link {
+    white-space: nowrap;
+}
+
+.viewer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "bar"
+        "body"
+        "info";
+    gap: 8px;
+    block-size: 100%;
+}
+
+.viewer-bar {
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.viewer-position {
+    flex: none;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.viewer-name {
+    flex: 1;
+    overflow: hidden;
+    margin: 0;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.viewer-body {
+    grid-area: body;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px;
+    min-block-size: 0;
+}
+
+.viewer-stage {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    block-size: 100%;
+    min-block-size: 200px;
+    background: var(--surface-sunken);
+    border-radius: var(--radius);
+    touch-action: pan-y;
+}
+
+// The full-size view: one image or video, scaled to fit (GL-02).
+.viewer-image,
+.viewer-video {
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    object-fit: contain;
+    -webkit-touch-callout: default;
+}
+
+// A song: its icon over the browser's player.
+.viewer-audio-stage {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+    inline-size: min(100%, 480px);
+    padding: 24px;
+}
+
+.viewer-audio {
+    inline-size: 100%;
+}
+
+.viewer-fallback {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.viewer-fallback-icon .icon {
+    inline-size: 64px;
+    block-size: 64px;
+}
+
+.viewer-info {
+    grid-area: info;
+    display: grid;
+    gap: 10px;
+    overflow-y: auto;
+    max-block-size: 40dvh;
+}
+
+.viewer-details {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px 12px;
+    margin: 0;
+    font-size: 0.875rem;
+
+    dt {
+        color: var(--muted);
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.viewer-map-link {
+    white-space: nowrap;
+}
+
+.viewer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@include layout.landscape-phone {
+    .viewer {
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 40%);
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+            "bar bar"
+            "body info";
+    }
+
+    .viewer-info {
+        max-block-size: none;
+    }
+}
+
+@include layout.desktop {
+    .viewer {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+            "bar bar"
+            "body info";
+        gap: 12px 20px;
+    }
+
+    .viewer-info {
+        align-content: start;
+        max-block-size: none;
+    }
+}

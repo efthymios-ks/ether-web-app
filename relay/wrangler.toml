@@ -1,0 +1,21 @@
+# Ether's relay: a Cloudflare Worker and one Durable Object, on the Workers Free plan.
+# Deploy from this folder with `npx wrangler@4 deploy` (see README.md).
+
+name = "ether-relay"
+main = "src/relayHub.ts"
+compatibility_date = "2026-06-01"
+# Wrangler sends Cloudflare no usage data for this project, on any computer.
+send_metrics = false
+
+[vars]
+# Space-separated. localhost and 127.0.0.1 match on any port, for testing on this computer.
+ALLOWED_ORIGINS = "https://efthymios-ks.github.io http://localhost http://127.0.0.1"
+
+[[durable_objects.bindings]]
+name = "RELAY_HUB"
+class_name = "RelayHub"
+
+# The Free plan runs only SQLite-backed Durable Objects.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayHub"]
